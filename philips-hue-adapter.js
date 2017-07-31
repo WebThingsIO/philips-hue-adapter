@@ -59,19 +59,49 @@ class PhilipsHueDevice extends Device {
 
     this.type = THING_TYPE_ON_OFF_SWITCH;
     this.properties.set('on', new PhilipsHueProperty(this, 'on', 'boolean',
-                        light.state.on));
+      light.state.on));
+    this.properties.set('hue', new PhilipsHueProperty(this, 'hue', 'number',
+      light.state.hue));
+    this.properties.set('saturation', new PhilipsHueProperty(this,
+      'saturation', 'number', light.state.sat));
+    this.properties.set('brightness', new PhilipsHueProperty(this,
+      'brightness', 'number', light.state.bri));
+
 
     this.adapter.handleDeviceAdded(this);
   }
 
   /**
    * When a property changes notify the Adapter to communicate with the bridge
+   * TODO: batch property changes to not spam the bridge
    * @param {PhilipsHueProperty} property
    */
   notifyPropertyChanged(property) {
     super.notifyPropertyChanged(property);
-    var on = this.properties.get('on').value;
-    this.adapter.sendProperties(this.lightId, {on: on});
+    let properties = null;
+    switch (property.name) {
+      case 'hue':
+      case 'saturation':
+      case 'brightness':
+        properties = {
+          hue: this.properties.get('hue').value,
+          sat: this.properties.get('saturation').value,
+          bri: this.properties.get('brightness').value
+        };
+        break;
+      case 'on':
+        properties = {
+          on: this.properties.get('on').value
+        };
+        break;
+      default:
+        console.warn('Unknown property:', property.name);
+        return;
+    }
+    if (!properties) {
+      return;
+    }
+    this.adapter.sendProperties(this.lightId, properties);
   }
 }
 
