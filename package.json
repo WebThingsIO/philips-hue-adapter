@@ -1,0 +1,17 @@
+{
+  "name": "philips-hue-adapter",
+  "version": "0.1.0",
+  "description": "Mozilla IoT Philips Hue Adapter",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hobinjk@gmail.com",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "node-persist": "^2.1.0",
+    "node-ssdp": "^3.2.1",
+    "request": "^2.81.0",
+    "request-promise-native": "^1.0.4"
+  }
+}
