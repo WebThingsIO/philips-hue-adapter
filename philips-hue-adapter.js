@@ -84,7 +84,7 @@ class PhilipsHueDevice extends Device {
       case 'saturation':
       case 'brightness':
         properties = {
-          hue: Math.floor(this.properties.get('hue').value * 65280 / 360),
+          hue: this.properties.get('hue').value,
           sat: this.properties.get('saturation').value,
           bri: this.properties.get('brightness').value
         };
