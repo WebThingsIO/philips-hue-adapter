@@ -9,11 +9,11 @@
 
 'use strict';
 
-var Adapter = require('./adapter');
-var Device = require('./device');
-var Property = require('./property');
-var rp = require('request-promise-native');
+var Adapter = require('../adapter');
+var Device = require('../device');
+var Property = require('../property');
 var storage = require('node-persist');
+var fetch = require('node-fetch');
 
 const THING_TYPE_ON_OFF_SWITCH = 'onOffSwitch';
 const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
@@ -23,8 +23,8 @@ const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
  * Boolean on/off or numerical hue, sat(uration), or bri(ghtness)
  */
 class PhilipsHueProperty extends Property {
-  constructor(device, name, type, value) {
-    super(device, name, type);
+  constructor(device, name, descr, value) {
+    super(device, name, descr);
     this.setCachedValue(value);
   }
 
@@ -33,7 +33,7 @@ class PhilipsHueProperty extends Property {
    * @return {Promise} a promise which resolves to the updated value.
    */
   setValue(value) {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       this.setCachedValue(value);
       resolve(this.value);
       this.device.notifyPropertyChanged(this);
@@ -58,14 +58,15 @@ class PhilipsHueDevice extends Device {
     this.name = light.name;
 
     this.type = THING_TYPE_ON_OFF_SWITCH;
-    this.properties.set('on', new PhilipsHueProperty(this, 'on', 'boolean',
-      light.state.on));
-    this.properties.set('hue', new PhilipsHueProperty(this, 'hue', 'number',
+    this.properties.set('on', new PhilipsHueProperty(this, 'on', {type:
+                                                     'boolean'},
+    light.state.on)); this.properties.set('hue', new PhilipsHueProperty(this,
+    'hue', {type: 'number'},
       light.state.hue));
     this.properties.set('saturation', new PhilipsHueProperty(this,
-      'saturation', 'number', light.state.sat));
+      'saturation', {type: 'number'}, light.state.sat));
     this.properties.set('brightness', new PhilipsHueProperty(this,
-      'brightness', 'number', light.state.bri));
+      'brightness', {type: 'number'}, light.state.bri));
 
 
     this.adapter.handleDeviceAdded(this);
@@ -112,7 +113,7 @@ class PhilipsHueDevice extends Device {
  */
 class PhilipsHueAdapter extends Adapter {
   constructor(adapterManager, bridgeId, bridgeIp) {
-    super(adapterManager, 'philips-hue-' + bridgeId);
+    super(adapterManager, 'philips-hue-' + bridgeId, 'philips-hue');
 
     this.username = null;
     this.bridgeId = bridgeId;
@@ -184,19 +185,13 @@ class PhilipsHueAdapter extends Adapter {
       return Promise.resolve(this.username);
     }
 
-    return rp({
-      uri: 'http://' + this.bridgeIp + '/api',
+    return fetch('http://' + this.bridgeIp + '/api', {
       method: 'POST',
       body: '{"devicetype":"mozilla_gateway#PhilipsHueAdapter"}'
     }).then(replyRaw => {
-      var reply = null;
-      try {
-        reply = JSON.parse(replyRaw);
-      } catch(e) {
-        return Promise.reject(e);
-      }
-
-      if (!reply || reply.length === 0) {
+      return replyRaw.json();
+    }).then(reply => {
+      if (reply.length === 0) {
         return Promise.reject('empty response from bridge');
       }
 
@@ -223,9 +218,9 @@ class PhilipsHueAdapter extends Adapter {
       return Promise.reject('missing username');
     }
 
-    return rp({
-      uri: 'http://' + this.bridgeIp + '/api/' + this.username + '/lights',
-      json: true
+    return fetch('http://' + this.bridgeIp + '/api/' + this.username +
+                 '/lights').then(res => {
+      return res.json();
     }).then(lights => {
       // TODO(hobinjk): dynamically remove lights
       for (var lightId in lights) {
@@ -249,11 +244,14 @@ class PhilipsHueAdapter extends Adapter {
   sendProperties(lightId, properties) {
     var uri = 'http://' + this.bridgeIp + '/api/' + this.username +
               '/lights/' + lightId + '/state';
-    return rp({
-      uri: uri,
+    return fetch(uri, {
       method: 'PUT',
-      json: true,
-      body: properties
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(properties)
+    }).then(res => {
+      return res.text();
     }).catch(e => {
       console.error(e);
     });

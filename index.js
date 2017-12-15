@@ -9,7 +9,7 @@
 'use strict';
 
 var PhilipsHueAdapter = require('./philips-hue-adapter');
-var rp = require('request-promise-native');
+var fetch = require('node-fetch');
 var SsdpClient = require('node-ssdp').Client;
 
 var bridgeAdapters = {};
@@ -45,9 +45,8 @@ function ssdpSearch(adapterManager) {
  * @return {Promise}
  */
 function discoverBridges(adapterManager) {
-  return rp({
-    uri: 'https://www.meethue.com/api/nupnp',
-    json: true
+  return fetch('https://www.meethue.com/api/nupnp').then(res => {
+    return res.json();
   }).then(bridges => {
     if (!bridges) {
       return Promise.reject('philips-hue: no bridges found');
@@ -63,6 +62,8 @@ function discoverBridges(adapterManager) {
       bridgeAdapters[bridge.id] = new PhilipsHueAdapter(adapterManager,
         bridge.id, bridge.internalipaddress);
     }
+  }).catch(e => {
+    console.log('error', e);
   });
 }
 
@@ -75,7 +76,3 @@ function loadPhilipsHueAdapters(adapterManager) {
 }
 
 module.exports = loadPhilipsHueAdapters;
-module.exports.config = {
-  enabled: true,
-  path: __dirname
-};
