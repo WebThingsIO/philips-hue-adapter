@@ -15,7 +15,7 @@ var Property = require('../property');
 var storage = require('node-persist');
 var fetch = require('node-fetch');
 
-const THING_TYPE_ON_OFF_SWITCH = 'onOffSwitch';
+const THING_TYPE_HSB_BULB = 'hsbBulb';
 const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
 
 /**
@@ -57,7 +57,7 @@ class PhilipsHueDevice extends Device {
     this.lightId = lightId;
     this.name = light.name;
 
-    this.type = THING_TYPE_ON_OFF_SWITCH;
+    this.type = THING_TYPE_HSB_BULB;
     this.properties.set('on', new PhilipsHueProperty(this, 'on', {type:
                                                      'boolean'},
     light.state.on)); this.properties.set('hue', new PhilipsHueProperty(this,
