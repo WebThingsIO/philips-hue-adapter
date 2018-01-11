@@ -14,8 +14,9 @@ var Device = require('../device');
 var Property = require('../property');
 var storage = require('node-persist');
 var fetch = require('node-fetch');
+var Color = require('color');
 
-const THING_TYPE_HSB_BULB = 'hsbBulb';
+const THING_TYPE_COLOR_LIGHT = 'colorLight';
 const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
 
 /**
@@ -57,17 +58,18 @@ class PhilipsHueDevice extends Device {
     this.lightId = lightId;
     this.name = light.name;
 
-    this.type = THING_TYPE_HSB_BULB;
-    this.properties.set('on', new PhilipsHueProperty(this, 'on', {type:
-                                                     'boolean'},
-    light.state.on)); this.properties.set('hue', new PhilipsHueProperty(this,
-    'hue', {type: 'number'},
-      light.state.hue));
-    this.properties.set('saturation', new PhilipsHueProperty(this,
-      'saturation', {type: 'number'}, light.state.sat));
-    this.properties.set('brightness', new PhilipsHueProperty(this,
-      'brightness', {type: 'number'}, light.state.bri));
+    this.type = THING_TYPE_COLOR_LIGHT;
+    this.properties.set('on',
+      new PhilipsHueProperty(this, 'on', {type: 'boolean'}, light.state.on));
 
+    let color = Color({
+      h: light.state.hue / 65535 * 360,
+      s: light.state.sat / 255 * 100,
+      v: light.state.bri / 255 * 100
+    }).hex();
+
+    this.properties.set('color',
+      new PhilipsHueProperty(this, 'color', {type: 'string'}, color));
 
     this.adapter.handleDeviceAdded(this);
   }
@@ -81,13 +83,12 @@ class PhilipsHueDevice extends Device {
     super.notifyPropertyChanged(property);
     let properties = null;
     switch (property.name) {
-      case 'hue':
-      case 'saturation':
-      case 'brightness':
+      case 'color':
+        let color = Color(this.properties.get('color').value);
         properties = {
-          hue: this.properties.get('hue').value,
-          sat: this.properties.get('saturation').value,
-          bri: this.properties.get('brightness').value
+          hue: color.hue() * 65535 / 100,
+          sat: color.saturationv() * 255 / 100,
+          bri: color.value() * 255 / 100
         };
         break;
       case 'on':

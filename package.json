@@ -9,6 +9,7 @@
   "author": "hobinjk@gmail.com",
   "license": "MPL-2.0",
   "dependencies": {
+    "color": "^2.0.1",
     "node-persist": "^2.1.0",
     "node-ssdp": "^3.2.1"
   },
