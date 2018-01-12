@@ -86,7 +86,7 @@ class PhilipsHueDevice extends Device {
       case 'color':
         let color = Color(this.properties.get('color').value);
         properties = {
-          hue: color.hue() * 65535 / 100,
+          hue: color.hue() * 65535 / 360,
           sat: color.saturationv() * 255 / 100,
           bri: color.value() * 255 / 100
         };
