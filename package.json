@@ -15,6 +15,7 @@
     "LICENSE",
     "SHA256SUMS",
     "index.js",
+    "node_modules",
     "philips-hue-adapter.js"
   ],
   "moziot": {
