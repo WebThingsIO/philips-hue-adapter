@@ -3,10 +3,8 @@
   "version": "0.3.0",
   "description": "Mozilla IoT Philips Hue Adapter",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "hobinjk@gmail.com",
+  "homepage": "https://iot.mozilla.org/",
+  "author": "Mozilla IoT Team",
   "license": "MPL-2.0",
   "dependencies": {
     "color": "^2.0.1",
@@ -14,6 +12,8 @@
     "node-ssdp": "^3.2.1"
   },
   "files": [
+    "LICENSE",
+    "SHA256SUMS",
     "index.js",
     "philips-hue-adapter.js"
   ],
