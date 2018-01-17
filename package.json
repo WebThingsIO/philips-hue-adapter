@@ -3,9 +3,24 @@
   "version": "0.3.0",
   "description": "Mozilla IoT Philips Hue Adapter",
   "main": "index.js",
-  "homepage": "https://iot.mozilla.org/",
+  "keywords": [
+    "mozilla",
+    "iot",
+    "adapter",
+    "philips",
+    "hue",
+    "philips-hue"
+  ],
+  "homepage": "https://github.com/mozilla-iot/philips-hue-adapter",
   "author": "Mozilla IoT Team",
   "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mozilla-iot/philips-hue-adapter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mozilla-iot/philips-hue-adapter/issues"
+  },
   "dependencies": {
     "color": "^2.0.1",
     "node-persist": "^2.1.0",
@@ -23,7 +38,6 @@
       "min": 1,
       "max": 1
     },
-    "enabled": true,
     "plugin": true,
     "exec": "{nodeLoader} {path}"
   }
