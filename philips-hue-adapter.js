@@ -16,7 +16,7 @@ var storage = require('node-persist');
 var fetch = require('node-fetch');
 var Color = require('color');
 
-const THING_TYPE_COLOR_LIGHT = 'colorLight';
+const THING_TYPE_ON_OFF_COLOR_LIGHT = 'onOffColorLight';
 const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
 
 /**
@@ -58,7 +58,7 @@ class PhilipsHueDevice extends Device {
     this.lightId = lightId;
     this.name = light.name;
 
-    this.type = THING_TYPE_COLOR_LIGHT;
+    this.type = THING_TYPE_ON_OFF_COLOR_LIGHT;
     this.properties.set('on',
       new PhilipsHueProperty(this, 'on', {type: 'boolean'}, light.state.on));
 
