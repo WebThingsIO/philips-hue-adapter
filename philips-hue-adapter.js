@@ -92,11 +92,17 @@ class PhilipsHueDevice extends Device {
         };
         break;
       }
-      case 'on':
+      case 'on': {
+        // We might be turning on after changing the color
+        let color = Color(this.properties.get('color').value);
         properties = {
-          on: this.properties.get('on').value
+          on: this.properties.get('on').value,
+          hue: Math.floor(color.hue() * 65535 / 360),
+          sat: Math.floor(color.saturationv() * 255 / 100),
+          bri: Math.floor(color.value() * 255 / 100)
         };
         break;
+      }
       default:
         console.warn('Unknown property:', property.name);
         return;
