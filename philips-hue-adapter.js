@@ -83,7 +83,7 @@ class PhilipsHueDevice extends Device {
     super.notifyPropertyChanged(property);
     let properties = null;
     switch (property.name) {
-      case 'color':
+      case 'color': {
         let color = Color(this.properties.get('color').value);
         properties = {
           hue: Math.floor(color.hue() * 65535 / 360),
@@ -91,6 +91,7 @@ class PhilipsHueDevice extends Device {
           bri: Math.floor(color.value() * 255 / 100)
         };
         break;
+      }
       case 'on':
         properties = {
           on: this.properties.get('on').value
