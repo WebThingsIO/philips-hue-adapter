@@ -17,6 +17,9 @@ var fetch = require('node-fetch');
 var Color = require('color');
 
 const THING_TYPE_ON_OFF_COLOR_LIGHT = 'onOffColorLight';
+const THING_TYPE_ON_OFF_LIGHT = 'onOffLight';
+const THING_TYPE_DIMMABLE_LIGHT = 'dimmableLight';
+
 const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
 
 /**
@@ -43,6 +46,75 @@ class PhilipsHueProperty extends Property {
 }
 
 /**
+ * Convert from {xy, brightness} to a CSS color string
+ * @param {Array<number>} xy - CIE xy coordinates of color
+ * @param {number} bri - Brightness of color
+ * @return {string} CSS string representing color
+ */
+function xyBriToCSS([x, y], bri) {
+  // From https://developers.meethue.com/documentation/color-conversions-rgb-xy
+
+  let z = 1 - x - y;
+  let Y = bri / 255;
+  let X = 0;
+  let Z = 0;
+
+  if (y > 0) {
+    X = (Y / y) * x;
+    Z = (Y / y) * z;
+  }
+
+  // Invert the Wide RGB D65 formula
+  let r =  X * 1.656492 - Y * 0.354851 - Z * 0.255038;
+  let g = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
+  let b =  X * 0.051713 - Y * 0.121364 + Z * 1.011530;
+
+  // Invert the gamma correction
+  r = r <= 0.0031308 ? 12.92 * r : 1.055 * Math.pow(r, 1 / 2.4) - 0.055;
+  g = g <= 0.0031308 ? 12.92 * g : 1.055 * Math.pow(g, 1 / 2.4) - 0.055;
+  b = b <= 0.0031308 ? 12.92 * b : 1.055 * Math.pow(b, 1 / 2.4) - 0.055;
+
+  return Color({r: 255 * r, g: 255 * g, b: 255 * b}).hex();
+}
+
+/**
+ * Convert from a CSS color string to CIE xy coordinates and brightness
+ * @param {string} cssColor CSS string representing color
+ * @return {{xy: Array<number>, bri: number}}
+ */
+function cssToXYBri(cssColor) {
+  let color = Color(cssColor);
+  let r = color.red() / 255;
+  let g = color.green() / 255;
+  let b = color.blue() / 255;
+
+  // From https://developers.meethue.com/documentation/color-conversions-rgb-xy
+
+  // Apply gamma correction
+  r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : (r / 12.92);
+  g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : (g / 12.92);
+  b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : (b / 12.92);
+
+  // Convert to XYZ using the Wide RGB D65 conversion formula
+  let X = r * 0.664511 + g * 0.154324 + b * 0.162028;
+  let Y = r * 0.283881 + g * 0.668433 + b * 0.047685;
+  let Z = r * 0.000088 + g * 0.072310 + b * 0.986039;
+
+  let x = 0;
+  let y = 0;
+
+  if (X + Y + Z > 0) {
+    x = X / (X + Y + Z);
+    y = Y / (X + Y + Z);
+  }
+
+  return {
+    xy: [x, y],
+    bri: Math.round(Y * 255)
+  }
+}
+
+/**
  * A Philips Hue light bulb
  */
 class PhilipsHueDevice extends Device {
@@ -58,18 +130,27 @@ class PhilipsHueDevice extends Device {
     this.lightId = lightId;
     this.name = light.name;
 
-    this.type = THING_TYPE_ON_OFF_COLOR_LIGHT;
+    this.type = THING_TYPE_ON_OFF_LIGHT;
     this.properties.set('on',
       new PhilipsHueProperty(this, 'on', {type: 'boolean'}, light.state.on));
 
-    let color = Color({
-      h: light.state.hue / 65535 * 360,
-      s: light.state.sat / 255 * 100,
-      v: light.state.bri / 255 * 100
-    }).hex();
+    if (light.state.hasOwnProperty('bri')) {
+      if (light.state.hasOwnProperty('xy')) {
+        this.type = THING_TYPE_ON_OFF_COLOR_LIGHT;
 
-    this.properties.set('color',
-      new PhilipsHueProperty(this, 'color', {type: 'string'}, color));
+        let color = xyBriToCSS(light.state.xy, light.state.bri);
+
+        this.properties.set('color',
+          new PhilipsHueProperty(this, 'color', {type: 'string'}, color));
+      } else {
+        this.type = THING_TYPE_DIMMABLE_LIGHT;
+
+        this.properties.set('level',
+          new PhilipsHueProperty(this, 'level', {type: 'number'},
+                                 light.state.bri));
+
+      }
+    }
 
     this.adapter.handleDeviceAdded(this);
   }
@@ -84,22 +165,32 @@ class PhilipsHueDevice extends Device {
     let properties = null;
     switch (property.name) {
       case 'color': {
-        let color = Color(this.properties.get('color').value);
+        let {xy, bri} = cssToXYBri(this.properties.get('color').value);
+
         properties = {
-          hue: Math.floor(color.hue() * 65535 / 360),
-          sat: Math.floor(color.saturationv() * 255 / 100),
-          bri: Math.floor(color.value() * 255 / 100)
+          xy: xy,
+          bri: bri
         };
         break;
       }
       case 'on': {
-        // We might be turning on after changing the color
-        let color = Color(this.properties.get('color').value);
         properties = {
           on: this.properties.get('on').value,
-          hue: Math.floor(color.hue() * 65535 / 360),
-          sat: Math.floor(color.saturationv() * 255 / 100),
-          bri: Math.floor(color.value() * 255 / 100)
+        };
+        // We might be turning on after changing the color/level
+        if (this.properties.has('color')) {
+          let {xy, bri} = cssToXYBri(this.properties.get('color').value);
+          properties.xy = xy;
+          properties.bri = bri;
+        } else if (this.properties.has('level')) {
+          let bri = this.properties.get('level').value;
+          properties.bri = bri;
+        }
+        break;
+      }
+      case 'level': {
+        properties = {
+          bri: this.properties.get('level').value
         };
         break;
       }
