@@ -111,7 +111,7 @@ function cssToXYBri(cssColor) {
   return {
     xy: [x, y],
     bri: Math.round(Y * 255)
-  }
+  };
 }
 
 /**
@@ -153,6 +153,37 @@ class PhilipsHueDevice extends Device {
     }
 
     this.adapter.handleDeviceAdded(this);
+  }
+
+  /**
+   * Update the device based on the Hue API's view of it.
+   * @param {Object} light - the light API object
+   */
+  update(light) {
+    if (this.properties.has('on')) {
+      let onProp = this.properties.get('on');
+      if (onProp.value !== light.state.on) {
+        onProp.setValue(light.state.on);
+        super.notifyPropertyChanged(onProp);
+      }
+    }
+
+    if (this.properties.has('color')) {
+      let color = xyBriToCSS(light.state.xy, light.state.bri);
+      let colorProp = this.properties.get('color');
+      if (color !== colorProp.value) {
+        colorProp.setValue(color);
+        super.notifyPropertyChanged(colorProp);
+      }
+    }
+
+    if (this.properties.has('level')) {
+      let levelProp = this.properties.get('level');
+      if (levelProp.value !== light.state.bri) {
+        levelProp.setValue(light.state.bri);
+        super.notifyPropertyChanged(levelProp);
+      }
+    }
   }
 
   /**
@@ -220,6 +251,10 @@ class PhilipsHueAdapter extends Adapter {
     this.pairing = false;
     this.pairingEnd = 0;
     this.lights = {};
+    this.updateLights = this.updateLights.bind(this);
+    this.updateInterval = 1000;
+    this.scheduledUpdate = null;
+    this.recentlyUpdatedLights = {};
 
     adapterManager.addAdapter(this);
 
@@ -235,7 +270,7 @@ class PhilipsHueAdapter extends Adapter {
         return Promise.reject('no known username');
       }
       this.username = username;
-      this.discoverLights();
+      this.updateLights();
     }).catch(e => {
       console.error(e);
     });
@@ -255,7 +290,7 @@ class PhilipsHueAdapter extends Adapter {
   attemptPairing() {
     this.pair().then(username => {
       this.username = username;
-      return this.discoverLights();
+      return this.updateLights();
     }).then(() => {
       return storage.init();
     }).then(() => {
@@ -308,11 +343,11 @@ class PhilipsHueAdapter extends Adapter {
   }
 
   /**
-   * Discovers lights known to bridge, instantiating one PhilipsHueDevice per
-   * light
+   * Updates lights known to bridge, instantiating one PhilipsHueDevice per
+   * light or updating the existing PhilipsHueDevice
    * @return {Promise}
    */
-  discoverLights() {
+  updateLights() {
     if (!this.username) {
       return Promise.reject('missing username');
     }
@@ -323,26 +358,46 @@ class PhilipsHueAdapter extends Adapter {
     }).then(lights => {
       // TODO(hobinjk): dynamically remove lights
       for (var lightId in lights) {
+        const light = lights[lightId];
         if (this.lights[lightId]) {
+          // Skip the next update after a sendProperty
+          if (this.recentlyUpdatedLights[lightId]) {
+            delete this.recentlyUpdatedLights[lightId];
+            continue;
+          }
+
+          this.lights[lightId].update(light);
           continue;
         }
-        var light = lights[lightId];
-        var id = 'philips-hue-' + this.bridgeId + '-' + lightId;
+        const id = 'philips-hue-' + this.bridgeId + '-' + lightId;
         this.lights[lightId] = new PhilipsHueDevice(this, id, lightId, light);
       }
+      if (this.scheduledUpdate) {
+        clearTimeout(this.scheduledUpdate);
+      }
+      this.scheduledUpdate = setTimeout(this.updateLights, this.updateInterval);
+
+    }).catch(e => {
+      console.warn('Error updating lights', e);
+      if (this.scheduledUpdate) {
+        clearTimeout(this.scheduledUpdate);
+      }
+      this.scheduledUpdate = setTimeout(this.updateLights, this.updateInterval);
     });
   }
 
   /**
-   * Update the state of a light
+   * Communicate the state of a light to the bridge
    * @param {String} lightId - Id of light usually from 1-n
-   * @param {{on: boolean, bri: number, hue: number, sat: number}}
-   *        properties - Updated properties of light to be sent
+   * @param {Object} properties - Updated properties of light to be sent
    * @return {Promise}
    */
   sendProperties(lightId, properties) {
     var uri = 'http://' + this.bridgeIp + '/api/' + this.username +
               '/lights/' + lightId + '/state';
+
+    // Skip the next update after a sendProperty
+    this.recentlyUpdatedLights[lightId] = true;
     return fetch(uri, {
       method: 'PUT',
       headers: {
