@@ -242,8 +242,8 @@ class PhilipsHueDevice extends Device {
  * Handles the username acquisition (pairing) process
  */
 class PhilipsHueAdapter extends Adapter {
-  constructor(adapterManager, bridgeId, bridgeIp) {
-    super(adapterManager, 'philips-hue-' + bridgeId, 'philips-hue');
+  constructor(adapterManager, packageName, bridgeId, bridgeIp) {
+    super(adapterManager, 'philips-hue-' + bridgeId, packageName);
 
     this.username = null;
     this.bridgeId = bridgeId;

@@ -18,7 +18,7 @@ var bridgeAdapters = {};
  * Search for bridges using local SSDP
  * @return {Promise}
  */
-function ssdpSearch(adapterManager) {
+function ssdpSearch(adapterManager, manifest) {
   var client = new SsdpClient();
   client.on('response', (headers, statusCode, rinfo) => {
     var bridgeId = headers['HUE-BRIDGEID'];
@@ -31,8 +31,8 @@ function ssdpSearch(adapterManager) {
     if (bridgeAdapters[bridgeId]) {
       return;
     }
-    bridgeAdapters[bridgeId] = new PhilipsHueAdapter(adapterManager, bridgeId,
-      bridgeIp);
+    bridgeAdapters[bridgeId] =
+      new PhilipsHueAdapter(adapterManager, manifest.name, bridgeId, bridgeIp);
   });
 
   return client.start().then(() => {
@@ -44,7 +44,7 @@ function ssdpSearch(adapterManager) {
  * Search for bridges using Philips's N-UPnP web API
  * @return {Promise}
  */
-function discoverBridges(adapterManager) {
+function discoverBridges(adapterManager, manifest) {
   return fetch('https://www.meethue.com/api/nupnp').then(res => {
     return res.json();
   }).then(bridges => {
@@ -60,19 +60,19 @@ function discoverBridges(adapterManager) {
         continue;
       }
       bridgeAdapters[bridge.id] = new PhilipsHueAdapter(adapterManager,
-        bridge.id, bridge.internalipaddress);
+        manifest.name, bridge.id, bridge.internalipaddress);
     }
   }).catch(e => {
-    console.log('error', e);
+    console.error('discoverBridges', e);
   });
 }
 
 /**
  * Perform both searches concurrently
  */
-function loadPhilipsHueAdapters(adapterManager) {
-  ssdpSearch(adapterManager);
-  discoverBridges(adapterManager);
+function loadPhilipsHueAdapters(adapterManager, manifest) {
+  ssdpSearch(adapterManager, manifest);
+  discoverBridges(adapterManager, manifest);
 }
 
 module.exports = loadPhilipsHueAdapters;
