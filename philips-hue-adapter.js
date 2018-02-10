@@ -37,10 +37,13 @@ class PhilipsHueProperty extends Property {
    * @return {Promise} a promise which resolves to the updated value.
    */
   setValue(value) {
+    let changed = this.value !== value;
     return new Promise(resolve => {
       this.setCachedValue(value);
       resolve(this.value);
-      this.device.notifyPropertyChanged(this);
+      if (changed) {
+        this.device.notifyPropertyChanged(this);
+      }
     });
   }
 }
@@ -163,7 +166,7 @@ class PhilipsHueDevice extends Device {
     if (this.properties.has('on')) {
       let onProp = this.properties.get('on');
       if (onProp.value !== light.state.on) {
-        onProp.setValue(light.state.on);
+        onProp.setCachedValue(light.state.on);
         super.notifyPropertyChanged(onProp);
       }
     }
@@ -171,8 +174,10 @@ class PhilipsHueDevice extends Device {
     if (this.properties.has('color')) {
       let color = xyBriToCSS(light.state.xy, light.state.bri);
       let colorProp = this.properties.get('color');
-      if (color !== colorProp.value) {
-        colorProp.setValue(color);
+      if (color.toUpperCase() !== colorProp.value.toUpperCase()) {
+        console.log('Update color', color, 'aka', light.state, 'from',
+                    colorProp.value);
+        colorProp.setCachedValue(color);
         super.notifyPropertyChanged(colorProp);
       }
     }
@@ -180,7 +185,7 @@ class PhilipsHueDevice extends Device {
     if (this.properties.has('level')) {
       let levelProp = this.properties.get('level');
       if (levelProp.value !== light.state.bri) {
-        levelProp.setValue(light.state.bri);
+        levelProp.setCachedValue(light.state.bri);
         super.notifyPropertyChanged(levelProp);
       }
     }
