@@ -11,19 +11,27 @@
 
 var Adapter = require('../adapter');
 var Device = require('../device');
+var Constants = require('../addon-constants');
 var Property = require('../property');
 var storage = require('node-persist');
 var fetch = require('node-fetch');
 var Color = require('color');
 
-const THING_TYPE_ON_OFF_COLOR_LIGHT = 'onOffColorLight';
-const THING_TYPE_ON_OFF_LIGHT = 'onOffLight';
-const THING_TYPE_DIMMABLE_LIGHT = 'dimmableLight';
-
 const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
 
+const SUPPORTED_SENSOR_TYPES = {
+  Daylight: true,
+  ZLLTemperature: true,
+  CLIPTemperature: true,
+  ZLLPresence: true,
+  CLIPPresence: true,
+  ZLLLightLevel: true,
+  CLIPLightLevel: true
+};
+
+
 /**
- * Property of a light bulb
+ * Property of a Hue device
  * Boolean on/off or numerical hue, sat(uration), or bri(ghtness)
  */
 class PhilipsHueProperty extends Property {
@@ -103,35 +111,55 @@ class PhilipsHueDevice extends Device {
   /**
    * @param {PhilipsHueAdapter} adapter
    * @param {String} id - A globally unique identifier
-   * @param {String} lightId - id of the light expected by the bridge API
-   * @param {Object} light - the light API object
+   * @param {String} deviceId - id of the device expected by the bridge API
+   * @param {Object} device - the device API object
    */
-  constructor(adapter, id, lightId, light) {
+  constructor(adapter, id, deviceId, device) {
     super(adapter, id);
 
-    this.lightId = lightId;
-    this.name = light.name;
+    this.deviceId = deviceId;
+    this.name = device.name;
 
-    this.type = THING_TYPE_ON_OFF_LIGHT;
-    this.properties.set('on',
-      new PhilipsHueProperty(this, 'on', {type: 'boolean'}, light.state.on));
+    if (deviceId.startsWith('sensors')) {
+      if (device.state.hasOwnProperty('presence')) {
+        this.type = Constants.THING_TYPE_BINARY_SENSOR;
+        this.properties.set('on',
+          new PhilipsHueProperty(this, 'on', {type: 'boolean'},
+                                 device.state.presence));
+      } else if (device.state.hasOwnProperty('temperature')) {
+        this.type = Constants.THING_TYPE_UNKNOWN_THING;
+        this.properties.set('temperature',
+          new PhilipsHueProperty(this, 'temperature',
+                                 {type: 'number', unit: 'celsius'},
+                                 device.state.temperature / 100));
+      } else if (device.state.hasOwnProperty('daylight')) {
+        this.type = Constants.THING_TYPE_BINARY_SENSOR;
+        this.properties.set('on',
+          new PhilipsHueProperty(this, 'on', {type: 'boolean'},
+                                 device.state.daylight));
+      }
+    } else {
+      this.type = Constants.THING_TYPE_ON_OFF_LIGHT;
+      this.properties.set('on',
+        new PhilipsHueProperty(this, 'on', {type: 'boolean'}, device.state.on));
 
-    if (light.state.hasOwnProperty('bri')) {
-      if (light.state.hasOwnProperty('xy')) {
-        this.type = THING_TYPE_ON_OFF_COLOR_LIGHT;
+      if (device.state.hasOwnProperty('bri')) {
+        if (device.state.hasOwnProperty('xy')) {
+          this.type = Constants.THING_TYPE_ON_OFF_COLOR_LIGHT;
 
-        let color = stateToCSS(light.state);
+          let color = stateToCSS(device.state);
 
-        this.properties.set('color',
-          new PhilipsHueProperty(this, 'color', {type: 'string'}, color));
-      } else {
-        this.type = THING_TYPE_DIMMABLE_LIGHT;
+          this.properties.set('color',
+            new PhilipsHueProperty(this, 'color', {type: 'string'}, color));
+        } else {
+          this.type = Constants.THING_TYPE_DIMMABLE_LIGHT;
 
-        let level = stateToLevel(light.state);
+          let level = stateToLevel(device.state);
 
-        this.properties.set('level',
-          new PhilipsHueProperty(this, 'level', {type: 'number'}, level));
+          this.properties.set('level',
+            new PhilipsHueProperty(this, 'level', {type: 'number'}, level));
 
+        }
       }
     }
 
@@ -142,17 +170,27 @@ class PhilipsHueDevice extends Device {
    * Update the device based on the Hue API's view of it.
    * @param {Object} light - the light API object
    */
-  update(light) {
+  update(device) {
     if (this.properties.has('on')) {
       let onProp = this.properties.get('on');
-      if (onProp.value !== light.state.on) {
-        onProp.setCachedValue(light.state.on);
+      let newValue = onProp.value;
+
+      if (device.state.hasOwnProperty('on')) {
+        newValue = device.state.on;
+      } else if (device.state.hasOwnProperty('daylight')) {
+        newValue = device.state.daylight;
+      } else if (device.state.hasOwnProperty('presence')) {
+        newValue = device.state.presence;
+      }
+
+      if (onProp.value !== newValue) {
+        onProp.setCachedValue(newValue);
         super.notifyPropertyChanged(onProp);
       }
     }
 
     if (this.properties.has('color')) {
-      let color = stateToCSS(light.state);
+      let color = stateToCSS(device.state);
       let colorProp = this.properties.get('color');
       if (color.toUpperCase() !== colorProp.value.toUpperCase()) {
         colorProp.setCachedValue(color);
@@ -161,11 +199,20 @@ class PhilipsHueDevice extends Device {
     }
 
     if (this.properties.has('level')) {
-      let level = stateToLevel(light.state);
+      let level = stateToLevel(device.state);
       let levelProp = this.properties.get('level');
-      if (level !== levelProp.value) {
+      if (levelProp.value !== level) {
         levelProp.setCachedValue(level);
         super.notifyPropertyChanged(levelProp);
+      }
+    }
+
+    if (this.properties.has('temperature')) {
+      let temp = device.state.temperature / 100;
+      let tempProp = this.properties.get('temperature');
+      if (tempProp.value !== temp) {
+        tempProp.setCachedValue(temp);
+        super.notifyPropertyChanged(tempProp);
       }
     }
   }
@@ -205,7 +252,7 @@ class PhilipsHueDevice extends Device {
     if (!properties) {
       return;
     }
-    this.adapter.sendProperties(this.lightId, properties);
+    this.adapter.sendProperties(this.deviceId, properties);
   }
 }
 
@@ -223,11 +270,10 @@ class PhilipsHueAdapter extends Adapter {
     this.bridgeIp = bridgeIp;
     this.pairing = false;
     this.pairingEnd = 0;
-    this.lights = {};
-    this.updateLights = this.updateLights.bind(this);
+    this.devices = {};
+    this.updateDevices = this.updateDevices.bind(this);
     this.updateInterval = 1000;
     this.scheduledUpdate = null;
-    this.recentlyUpdatedLights = {};
 
     adapterManager.addAdapter(this);
 
@@ -243,7 +289,7 @@ class PhilipsHueAdapter extends Adapter {
         return Promise.reject('no known username');
       }
       this.username = username;
-      this.updateLights();
+      this.updateDevices();
     }).catch(e => {
       console.error(e);
     });
@@ -263,7 +309,7 @@ class PhilipsHueAdapter extends Adapter {
   attemptPairing() {
     this.pair().then(username => {
       this.username = username;
-      return this.updateLights();
+      return this.updateDevices();
     }).then(() => {
       return storage.init();
     }).then(() => {
@@ -316,61 +362,91 @@ class PhilipsHueAdapter extends Adapter {
   }
 
   /**
-   * Updates lights known to bridge, instantiating one PhilipsHueDevice per
+   * Updates devices known to bridge, instantiating one PhilipsHueDevice per
    * light or updating the existing PhilipsHueDevice
    * @return {Promise}
    */
-  updateLights() {
+  updateDevices() {
     if (!this.username) {
       return Promise.reject('missing username');
     }
 
-    return fetch('http://' + this.bridgeIp + '/api/' + this.username +
-                 '/lights').then(res => {
-      return res.json();
-    }).then(lights => {
+    let apiBase = 'http://' + this.bridgeIp + '/api/' + this.username;
+    return Promise.all([
+      fetch(apiBase + '/lights'),
+      fetch(apiBase + '/sensors')
+    ]).then(responses => {
+      return Promise.all(responses.map(res => res.json()));
+    }).then(([lights, sensors]) => {
       // TODO(hobinjk): dynamically remove lights
-      for (var lightId in lights) {
-        const light = lights[lightId];
-        if (this.lights[lightId]) {
-          // Skip the next update after a sendProperty
-          if (this.recentlyUpdatedLights[lightId]) {
-            delete this.recentlyUpdatedLights[lightId];
-            continue;
-          }
-
-          this.lights[lightId].update(light);
-          continue;
-        }
-        const id = 'philips-hue-' + this.bridgeId + '-' + lightId;
-        this.lights[lightId] = new PhilipsHueDevice(this, id, lightId, light);
+      for (let lightId in lights) {
+        const state = lights[lightId];
+        const deviceId = 'lights/' + lightId;
+        this.updateDevice(deviceId, state);
       }
+      for (let sensorId in sensors) {
+        const state = sensors[sensorId];
+        const deviceId = 'sensors/' + sensorId;
+        this.updateDevice(deviceId, state);
+      }
+
+
       if (this.scheduledUpdate) {
         clearTimeout(this.scheduledUpdate);
       }
-      this.scheduledUpdate = setTimeout(this.updateLights, this.updateInterval);
+      this.scheduledUpdate = setTimeout(this.updateDevices,
+                                        this.updateInterval);
 
     }).catch(e => {
-      console.warn('Error updating lights', e);
+      console.warn('Error updating devices', e);
       if (this.scheduledUpdate) {
         clearTimeout(this.scheduledUpdate);
       }
-      this.scheduledUpdate = setTimeout(this.updateLights, this.updateInterval);
+      this.scheduledUpdate = setTimeout(this.updateDevices,
+                                        this.updateInterval);
     });
   }
 
+  updateDevice(deviceId, deviceState) {
+    let device = this.devices[deviceId];
+    if (device) {
+      if (device.recentlyUpdated) {
+        // Skip the next update after a sendProperty
+        device.recentlyUpdated = false;
+        return;
+      }
+
+      device.update(deviceState);
+      return;
+    }
+
+    if (deviceId.startsWith('sensors')) {
+      if (!SUPPORTED_SENSOR_TYPES[deviceState.type]) {
+        return;
+      }
+    }
+    const normalizedId = deviceId.replace(/lights\//g, '')
+      .replace(/\//g, '-');
+    const id = 'philips-hue-' + this.bridgeId + '-' + normalizedId;
+    this.devices[deviceId] = new PhilipsHueDevice(this, id, deviceId,
+                                                  deviceState);
+  }
+
   /**
-   * Communicate the state of a light to the bridge
-   * @param {String} lightId - Id of light usually from 1-n
-   * @param {Object} properties - Updated properties of light to be sent
+   * Communicate the state of a device to the bridge
+   * @param {String} deviceId - Id of device usually in format lights/1
+   * @param {Object} properties - Updated properties of device to be sent
    * @return {Promise}
    */
-  sendProperties(lightId, properties) {
+  sendProperties(deviceId, properties) {
     var uri = 'http://' + this.bridgeIp + '/api/' + this.username +
-              '/lights/' + lightId + '/state';
+              '/' + deviceId + '/state';
 
     // Skip the next update after a sendProperty
-    this.recentlyUpdatedLights[lightId] = true;
+    if (this.devices[deviceId]) {
+      this.devices[deviceId].recentlyUpdated = true;
+    }
+
     return fetch(uri, {
       method: 'PUT',
       headers: {
