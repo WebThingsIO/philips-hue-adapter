@@ -62,6 +62,15 @@ function stateToCSS(state) {
 }
 
 /**
+ * Convert from light properties to a brightness value
+ * @param {Object} state
+ * @return {number} number representing brightness value
+ */
+function stateToLevel(state) {
+  return  Math.round(state.bri / 254 * 100);
+}
+
+/**
  * Convert from a CSS color string to a light state object
  * @param {string} cssColor CSS string representing color
  * @return {Object}
@@ -73,6 +82,17 @@ function cssToState(cssColor) {
     hue: Math.round(color.hue() * 65535 / 360),
     sat: Math.round(color.saturationv() * 254 / 100),
     bri: Math.round(color.value() * 254 / 100)
+  };
+}
+
+/**
+ * Convert from a level value to a light state object
+ * @param {number} level brightness value
+ * @return {Object}
+ */
+function levelToState(level) {
+  return {
+    bri: Math.round(level * 254 / 100)
   };
 }
 
@@ -107,9 +127,10 @@ class PhilipsHueDevice extends Device {
       } else {
         this.type = THING_TYPE_DIMMABLE_LIGHT;
 
+        let level = stateToLevel(light.state);
+
         this.properties.set('level',
-          new PhilipsHueProperty(this, 'level', {type: 'number'},
-                                 light.state.bri));
+          new PhilipsHueProperty(this, 'level', {type: 'number'}, level));
 
       }
     }
@@ -140,9 +161,10 @@ class PhilipsHueDevice extends Device {
     }
 
     if (this.properties.has('level')) {
+      let level = stateToLevel(light.state);
       let levelProp = this.properties.get('level');
-      if (levelProp.value !== light.state.bri) {
-        levelProp.setCachedValue(light.state.bri);
+      if (level !== levelProp.value) {
+        levelProp.setCachedValue(level);
         super.notifyPropertyChanged(levelProp);
       }
     }
@@ -167,17 +189,13 @@ class PhilipsHueDevice extends Device {
         if (this.properties.has('color')) {
           properties = cssToState(this.properties.get('color').value);
         } else if (this.properties.has('level')) {
-          properties = {
-            bri: this.properties.get('level').value
-          };
+          properties = levelToState(this.properties.get('level').value);
         }
         properties.on = this.properties.get('on').value;
         break;
       }
       case 'level': {
-        properties = {
-          bri: this.properties.get('level').value
-        };
+        properties = levelToState(this.properties.get('level').value);
         break;
       }
       default:
@@ -368,4 +386,3 @@ class PhilipsHueAdapter extends Adapter {
 }
 
 module.exports = PhilipsHueAdapter;
-
