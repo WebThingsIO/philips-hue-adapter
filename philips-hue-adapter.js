@@ -9,13 +9,27 @@
 
 'use strict';
 
-var Adapter = require('../adapter');
-var Device = require('../device');
-var Constants = require('../addon-constants');
-var Property = require('../property');
 var storage = require('node-persist');
 var fetch = require('node-fetch');
 var Color = require('color');
+
+let Adapter, Constants, Device, Property;
+try {
+  Adapter = require('../adapter');
+  Constants = require('../addon-constants');
+  Device = require('../device');
+  Property = require('../property');
+} catch (e) {
+  if (e.code !== 'MODULE_NOT_FOUND') {
+    throw e;
+  }
+
+  const gwa = require('gateway-addon');
+  Adapter = gwa.Adapter;
+  Constants = gwa.Constants;
+  Device = gwa.Device;
+  Property = gwa.Property;
+}
 
 const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
 
