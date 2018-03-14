@@ -12,7 +12,7 @@
     "philips-hue"
   ],
   "homepage": "https://github.com/mozilla-iot/philips-hue-adapter",
-  "author": "Mozilla IoT Team",
+  "author": "Mozilla IoT",
   "license": "MPL-2.0",
   "repository": {
     "type": "git",
