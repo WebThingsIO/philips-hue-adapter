@@ -284,7 +284,6 @@ class PhilipsHueAdapter extends Adapter {
     this.bridgeIp = bridgeIp;
     this.pairing = false;
     this.pairingEnd = 0;
-    this.devices = {};
     this.updateDevices = this.updateDevices.bind(this);
     this.updateInterval = 1000;
     this.scheduledUpdate = null;
@@ -442,8 +441,7 @@ class PhilipsHueAdapter extends Adapter {
     const normalizedId = deviceId.replace(/lights\//g, '')
       .replace(/\//g, '-');
     const id = 'philips-hue-' + this.bridgeId + '-' + normalizedId;
-    this.devices[deviceId] = new PhilipsHueDevice(this, id, deviceId,
-                                                  deviceState);
+    new PhilipsHueDevice(this, id, deviceId, deviceState);
   }
 
   /**
