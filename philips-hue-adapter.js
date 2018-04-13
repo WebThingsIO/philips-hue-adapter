@@ -421,7 +421,16 @@ class PhilipsHueAdapter extends Adapter {
   }
 
   updateDevice(deviceId, deviceState) {
-    let device = this.devices[deviceId];
+    if (deviceId.startsWith('sensors')) {
+      if (!SUPPORTED_SENSOR_TYPES[deviceState.type]) {
+        return;
+      }
+    }
+    const normalizedId = deviceId.replace(/lights\//g, '')
+      .replace(/\//g, '-');
+    const id = 'philips-hue-' + this.bridgeId + '-' + normalizedId;
+
+    let device = this.devices[id];
     if (device) {
       if (device.recentlyUpdated) {
         // Skip the next update after a sendProperty
@@ -433,14 +442,6 @@ class PhilipsHueAdapter extends Adapter {
       return;
     }
 
-    if (deviceId.startsWith('sensors')) {
-      if (!SUPPORTED_SENSOR_TYPES[deviceState.type]) {
-        return;
-      }
-    }
-    const normalizedId = deviceId.replace(/lights\//g, '')
-      .replace(/\//g, '-');
-    const id = 'philips-hue-' + this.bridgeId + '-' + normalizedId;
     new PhilipsHueDevice(this, id, deviceId, deviceState);
   }
 
