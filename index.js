@@ -8,26 +8,26 @@
 
 'use strict';
 
-var PhilipsHueAdapter = require('./philips-hue-adapter');
-var fetch = require('node-fetch');
-var SsdpClient = require('node-ssdp').Client;
+const PhilipsHueAdapter = require('./philips-hue-adapter');
+const fetch = require('node-fetch');
+const SsdpClient = require('node-ssdp').Client;
 
-var bridgeAdapters = {};
+const bridgeAdapters = {};
 
 /**
  * Search for bridges using local SSDP
  * @return {Promise}
  */
 function ssdpSearch(adapterManager, manifest) {
-  var client = new SsdpClient();
+  const client = new SsdpClient();
   client.on('response', (headers, statusCode, rinfo) => {
-    var bridgeId = headers['HUE-BRIDGEID'];
+    let bridgeId = headers['HUE-BRIDGEID'];
     if (!bridgeId) {
       return;
     }
     // Normalize bridge id
     bridgeId = bridgeId.toLowerCase();
-    var bridgeIp = rinfo.address;
+    const bridgeIp = rinfo.address;
     if (bridgeAdapters[bridgeId]) {
       return;
     }
@@ -45,24 +45,24 @@ function ssdpSearch(adapterManager, manifest) {
  * @return {Promise}
  */
 function discoverBridges(adapterManager, manifest) {
-  return fetch('https://www.meethue.com/api/nupnp').then(res => {
+  return fetch('https://www.meethue.com/api/nupnp').then((res) => {
     return res.json();
-  }).then(bridges => {
+  }).then((bridges) => {
     if (!bridges) {
       return Promise.reject('philips-hue: no bridges found');
     }
     // TODO(hobinjk): remove adapters whose bridges are offline
-    for (var bridge of bridges) {
+    for (const bridge of bridges) {
       // Normalize bridge id
       bridge.id = bridge.id.toLowerCase();
       if (bridgeAdapters[bridge.id]) {
         // TODO(hobinjk): update existing adapter's IP address if it has changed
         continue;
       }
-      bridgeAdapters[bridge.id] = new PhilipsHueAdapter(adapterManager,
-        manifest.name, bridge.id, bridge.internalipaddress);
+      bridgeAdapters[bridge.id] = new PhilipsHueAdapter(
+        adapterManager, manifest.name, bridge.id, bridge.internalipaddress);
     }
-  }).catch(e => {
+  }).catch((e) => {
     console.error('discoverBridges', e);
   });
 }
