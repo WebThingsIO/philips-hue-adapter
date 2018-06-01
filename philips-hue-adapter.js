@@ -391,8 +391,18 @@ class PhilipsHueAdapter extends Adapter {
 
     const apiBase = `http://${this.bridgeIp}/api/${this.username}`;
     return Promise.all([
-      fetch(`${apiBase}/lights`),
-      fetch(`${apiBase}/sensors`),
+      fetch(`${apiBase}/lights`).then(function(response) {
+        if (response.status == 404) {
+            return new fetch.Response("[]", {"status": "200"});
+        }
+        return response;
+      }),
+      fetch(`${apiBase}/sensors`).then(function(response) {
+        if (response.status == 404) {
+            return new fetch.Response("[]", {"status": "200"});
+        }
+        return response;
+      }),
     ]).then((responses) => {
       return Promise.all(responses.map((res) => res.json()));
     }).then(([lights, sensors]) => {

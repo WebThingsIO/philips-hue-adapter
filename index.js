@@ -11,6 +11,7 @@
 const PhilipsHueAdapter = require('./philips-hue-adapter');
 const fetch = require('node-fetch');
 const SsdpClient = require('node-ssdp').Client;
+const url = require('url');
 
 const bridgeAdapters = {};
 
@@ -27,7 +28,7 @@ function ssdpSearch(adapterManager, manifest) {
     }
     // Normalize bridge id
     bridgeId = bridgeId.toLowerCase();
-    const bridgeIp = rinfo.address;
+    const bridgeIp = url.parse(headers['LOCATION']).host;
     if (bridgeAdapters[bridgeId]) {
       return;
     }
