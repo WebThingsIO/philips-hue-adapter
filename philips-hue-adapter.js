@@ -467,7 +467,7 @@ class PhilipsHueAdapter extends Adapter {
    */
   sendProperties(deviceId, properties) {
     const uri =
-      `http://${this.bridgeIp$}/api/${this.username}/${deviceId}/state`;
+      `http://${this.bridgeIp}/api/${this.username}/${deviceId}/state`;
 
     // Skip the next update after a sendProperty
     if (this.devices[deviceId]) {
