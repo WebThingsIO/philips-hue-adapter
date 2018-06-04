@@ -1,6 +1,6 @@
 {
   "name": "philips-hue-adapter",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Mozilla IoT Philips Hue Adapter. Press the link button on your Hue bridge to pair devices.",
   "main": "index.js",
   "keywords": [
@@ -27,6 +27,7 @@
     "node-ssdp": "^3.2.1"
   },
   "devDependencies": {
+    "babel-eslint": "^8.2.1",
     "eslint": "^4.19.1"
   },
   "files": [
@@ -43,9 +44,5 @@
     },
     "plugin": true,
     "exec": "{nodeLoader} {path}"
-  },
-  "devDependencies": {
-    "babel-eslint": "^8.2.1",
-    "eslint": "^4.17.0"
   }
 }
