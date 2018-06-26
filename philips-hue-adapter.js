@@ -137,39 +137,80 @@ class PhilipsHueDevice extends Device {
     if (deviceId.startsWith('sensors')) {
       if (device.state.hasOwnProperty('presence')) {
         this.type = Constants.THING_TYPE_BINARY_SENSOR;
+        this['@type'] = ['BinarySensor'];
         this.properties.set(
           'on',
-          new PhilipsHueProperty(this, 'on', {type: 'boolean'},
-                                 device.state.presence));
+          new PhilipsHueProperty(
+            this,
+            'on',
+            {
+              '@type': 'BooleanProperty',
+              label: 'Present',
+              type: 'boolean',
+            },
+            device.state.presence));
       } else if (device.state.hasOwnProperty('temperature')) {
+        // TODO: Fill in proper types once they are implemented
         this.type = Constants.THING_TYPE_UNKNOWN_THING;
         this.properties.set(
           'temperature',
-          new PhilipsHueProperty(this, 'temperature',
-                                 {type: 'number', unit: 'celsius'},
-                                 device.state.temperature / 100));
+          new PhilipsHueProperty(
+            this,
+            'temperature',
+            {
+              label: 'Temperature',
+              type: 'number',
+              unit: 'celsius',
+            },
+            device.state.temperature / 100));
       } else if (device.state.hasOwnProperty('daylight')) {
         this.type = Constants.THING_TYPE_BINARY_SENSOR;
+        this['@type'] = ['BinarySensor'];
         this.properties.set(
           'on',
-          new PhilipsHueProperty(this, 'on', {type: 'boolean'},
-                                 device.state.daylight));
+          new PhilipsHueProperty(
+            this,
+            'on',
+            {
+              '@type': 'BooleanProperty',
+              label: 'Daylight',
+              type: 'boolean',
+            },
+            device.state.daylight));
       }
     } else {
       this.type = Constants.THING_TYPE_ON_OFF_LIGHT;
+      this['@type'] = ['OnOffSwitch', 'Light'];
       this.properties.set(
         'on',
-        new PhilipsHueProperty(this, 'on', {type: 'boolean'}, device.state.on));
+        new PhilipsHueProperty(
+          this,
+          'on',
+          {
+            '@type': 'OnOffProperty',
+            label: 'On/Off',
+            type: 'boolean',
+          },
+          device.state.on));
 
       if (device.state.hasOwnProperty('bri')) {
         if (device.state.hasOwnProperty('xy')) {
           this.type = Constants.THING_TYPE_ON_OFF_COLOR_LIGHT;
+          this['@type'].push('ColorControl');
 
           const color = stateToCSS(device.state);
 
           this.properties.set(
             'color',
-            new PhilipsHueProperty(this, 'color', {type: 'string'}, color));
+            new PhilipsHueProperty(
+              this,
+              'color',
+              {
+                '@type': 'ColorProperty',
+                label: 'Color',
+                type: 'string',
+              },
+              color));
         } else {
           this.type = Constants.THING_TYPE_DIMMABLE_LIGHT;
 
@@ -177,7 +218,15 @@ class PhilipsHueDevice extends Device {
 
           this.properties.set(
             'level',
-            new PhilipsHueProperty(this, 'level', {type: 'number'}, level));
+            new PhilipsHueProperty(
+              this,
+              'level',
+              {
+                '@type': 'BrightnessProperty',
+                label: 'Brightness',
+                type: 'number',
+              },
+              level));
         }
       }
     }
@@ -393,13 +442,13 @@ class PhilipsHueAdapter extends Adapter {
     return Promise.all([
       fetch(`${apiBase}/lights`).then(function(response) {
         if (response.status == 404) {
-            return new fetch.Response("[]", {"status": "200"});
+          return new fetch.Response('[]', {status: '200'});
         }
         return response;
       }),
       fetch(`${apiBase}/sensors`).then(function(response) {
         if (response.status == 404) {
-            return new fetch.Response("[]", {"status": "200"});
+          return new fetch.Response('[]', {status: '200'});
         }
         return response;
       }),

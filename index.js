@@ -21,14 +21,14 @@ const bridgeAdapters = {};
  */
 function ssdpSearch(adapterManager, manifest) {
   const client = new SsdpClient();
-  client.on('response', (headers, statusCode, rinfo) => {
+  client.on('response', (headers) => {
     let bridgeId = headers['HUE-BRIDGEID'];
     if (!bridgeId) {
       return;
     }
     // Normalize bridge id
     bridgeId = bridgeId.toLowerCase();
-    const bridgeIp = url.parse(headers['LOCATION']).host;
+    const bridgeIp = url.parse(headers.LOCATION).host;
     if (bridgeAdapters[bridgeId]) {
       return;
     }
