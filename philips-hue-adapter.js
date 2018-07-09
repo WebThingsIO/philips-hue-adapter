@@ -93,6 +93,15 @@ function stateToLevel(state) {
 }
 
 /**
+ * Convert from light properties to a color temperature value.
+ * @param {Object} state
+ * @return {number} number representing color temperature value
+ */
+function stateToColorTemperature(state) {
+  return Math.round(1e6 / state.ct);
+}
+
+/**
  * Convert from a CSS color string to a light state object
  * @param {string} cssColor CSS string representing color
  * @return {Object}
@@ -115,6 +124,17 @@ function cssToState(cssColor) {
 function levelToState(level) {
   return {
     bri: Math.round(level * 254 / 100),
+  };
+}
+
+/**
+ * Convert from a color temperature value to a light state object
+ * @param {number} temperature color temperature value
+ * @return {Object}
+ */
+function colorTemperatureToState(temperature) {
+  return {
+    ct: Math.round(1e6 / temperature),
   };
 }
 
@@ -212,7 +232,29 @@ class PhilipsHueDevice extends Device {
               },
               color));
         } else {
-          this.type = Constants.THING_TYPE_DIMMABLE_LIGHT;
+          if (device.state.hasOwnProperty('ct')) {
+            this.type = Constants.THING_TYPE_DIMMABLE_COLOR_LIGHT;
+            this['@type'].push('ColorControl');
+
+            const colorTemperature = stateToColorTemperature(device.state);
+
+            this.properties.set(
+              'colorTemperature',
+              new PhilipsHueProperty(
+                this,
+                'colorTemperature',
+                {
+                  '@type': 'ColorTemperatureProperty',
+                  label: 'Color Temperature',
+                  type: 'number',
+                  unit: 'kelvin',
+                  minimum: 2203,
+                  maximum: 6536,
+                },
+                colorTemperature));
+          } else {
+            this.type = Constants.THING_TYPE_DIMMABLE_LIGHT;
+          }
 
           const level = stateToLevel(device.state);
 
@@ -266,6 +308,15 @@ class PhilipsHueDevice extends Device {
       }
     }
 
+    if (this.properties.has('colorTemperature')) {
+      const colorTemperature = stateToColorTemperature(device.state);
+      const colorTemperatureProp = this.properties.get('colorTemperature');
+      if (colorTemperatureProp.value !== colorTemperature) {
+        colorTemperatureProp.setCachedValue(colorTemperature);
+        super.notifyPropertyChanged(colorTemperatureProp);
+      }
+    }
+
     if (this.properties.has('level')) {
       const level = stateToLevel(device.state);
       const levelProp = this.properties.get('level');
@@ -298,14 +349,34 @@ class PhilipsHueDevice extends Device {
         properties = cssToState(this.properties.get('color').value);
         break;
       }
+      case 'colorTemperature': {
+        properties = colorTemperatureToState(
+          this.properties.get('colorTemperature').value);
+        break;
+      }
       case 'on': {
         properties = {};
+
         // We might be turning on after changing the color/level
         if (this.properties.has('color')) {
-          properties = cssToState(this.properties.get('color').value);
-        } else if (this.properties.has('level')) {
-          properties = levelToState(this.properties.get('level').value);
+          properties = Object.assign(
+            properties,
+            cssToState(this.properties.get('color').value));
         }
+
+        if (this.properties.has('colorTemperature')) {
+          properties = Object.assign(
+            properties,
+            colorTemperatureToState(
+              this.properties.get('colorTemperature').value));
+        }
+
+        if (this.properties.has('level')) {
+          properties = Object.assign(
+            properties,
+            levelToState(this.properties.get('level').value));
+        }
+
         properties.on = this.properties.get('on').value;
         break;
       }
