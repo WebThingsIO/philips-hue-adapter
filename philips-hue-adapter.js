@@ -299,7 +299,7 @@ class PhilipsHueDevice extends Device {
       }
     }
 
-    if (this.properties.has('color')) {
+    if (this.properties.has('color') && device.state.on) {
       const color = stateToCSS(device.state);
       const colorProp = this.properties.get('color');
       if (color.toUpperCase() !== colorProp.value.toUpperCase()) {
@@ -308,7 +308,7 @@ class PhilipsHueDevice extends Device {
       }
     }
 
-    if (this.properties.has('colorTemperature')) {
+    if (this.properties.has('colorTemperature') && device.state.on) {
       const colorTemperature = stateToColorTemperature(device.state);
       const colorTemperatureProp = this.properties.get('colorTemperature');
       if (colorTemperatureProp.value !== colorTemperature) {
