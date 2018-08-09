@@ -1,7 +1,7 @@
 {
   "name": "philips-hue-adapter",
   "display_name": "Philips Hue",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Mozilla IoT Philips Hue Adapter. Press the link button on your Hue bridge to pair devices.",
   "main": "index.js",
   "keywords": [
