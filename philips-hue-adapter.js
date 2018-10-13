@@ -157,16 +157,17 @@ class PhilipsHueDevice extends Device {
     if (deviceId.startsWith('sensors')) {
       if (device.state.hasOwnProperty('presence')) {
         this.type = Constants.THING_TYPE_BINARY_SENSOR;
-        this['@type'] = ['BinarySensor'];
+        this['@type'] = ['MotionSensor'];
         this.properties.set(
           'on',
           new PhilipsHueProperty(
             this,
             'on',
             {
-              '@type': 'BooleanProperty',
+              '@type': 'MotionProperty',
               label: 'Present',
               type: 'boolean',
+              readOnly: true,
             },
             device.state.presence));
       } else if (device.state.hasOwnProperty('temperature')) {
@@ -181,6 +182,7 @@ class PhilipsHueDevice extends Device {
               label: 'Temperature',
               type: 'number',
               unit: 'celsius',
+              readOnly: true,
             },
             device.state.temperature / 100));
       } else if (device.state.hasOwnProperty('daylight')) {
@@ -195,6 +197,7 @@ class PhilipsHueDevice extends Device {
               '@type': 'BooleanProperty',
               label: 'Daylight',
               type: 'boolean',
+              readOnly: true,
             },
             device.state.daylight));
       }
@@ -210,6 +213,7 @@ class PhilipsHueDevice extends Device {
             '@type': 'OnOffProperty',
             label: 'On/Off',
             type: 'boolean',
+            readOnly: true,
           },
           device.state.on));
 
