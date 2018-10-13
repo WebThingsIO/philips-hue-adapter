@@ -41,7 +41,31 @@ const SUPPORTED_SENSOR_TYPES = {
   CLIPPresence: true,
   ZLLLightLevel: true,
   CLIPLightLevel: true,
+  ZLLSwitch: true,
 };
+
+const HUE_DIMMER_SWITCH_BUTTONS = {
+  buttonOn: {
+    start: 1000,
+    off: 1002,
+    label: 'On',
+  },
+  buttonBrighten: {
+    start: 2000,
+    off: 2002,
+    label: 'Dim up',
+  },
+  buttonDim: {
+    start: 3000,
+    off: 3002,
+    label: 'Dim down',
+  },
+  buttonOff: {
+    start: 4000,
+    off: 4002,
+    label: 'Off',
+  },
+}
 
 
 /**
@@ -200,6 +224,30 @@ class PhilipsHueDevice extends Device {
               readOnly: true,
             },
             device.state.daylight));
+      } else if (device.state.hasOwnProperty('buttonevent')) {
+        this.type = Constants.THING_TYPE_BINARY_SENSOR;
+        this['@type'] = ['PushButton'];
+        if (device.type === 'ZLLSwitch') {
+          for (const buttonType in HUE_DIMMER_SWITCH_BUTTONS) {
+            if (HUE_DIMMER_SWITCH_BUTTONS.hasOwnProperty(buttonType)) {
+              const buttonInfo = HUE_DIMMER_SWITCH_BUTTONS[buttonType];
+              this.properties.set(
+                buttonType,
+                new PhilipsHueProperty(
+                  this,
+                  buttonType,
+                  {
+                    '@type': 'PushedProperty',
+                    label: buttonInfo.label,
+                    type: 'boolean',
+                    readOnly: true,
+                  },
+                  device.state.buttonevent >= buttonInfo.start && device.state.buttonevnt < buttonInfo.off
+                )
+              );
+            }
+          }
+        }
       }
     } else {
       this.type = Constants.THING_TYPE_ON_OFF_LIGHT;
@@ -364,6 +412,21 @@ class PhilipsHueDevice extends Device {
       if (batteryProp.value !== battery) {
         batteryProp.setCachedValue(battery);
         super.notifyPropertyChanged(batteryProp);
+      }
+    }
+
+    if (this.properties.has('buttonOn')) {
+      const buttonEvent = device.state.buttonevent;
+      for (const buttonType in HUE_DIMMER_SWITCH_BUTTONS) {
+        if (HUE_DIMMER_SWITCH_BUTTONS.hasOwnProperty(buttonType)) {
+          const buttonInfo = HUE_DIMMER_SWITCH_BUTTONS[buttonType];
+          const buttonProp = this.properties.get(buttonType);
+          const pressed = device.state.buttonevent >= buttonInfo.start && device.state.buttonevent < buttonInfo.off;
+          if (buttonProp.value !== pressed) {
+            buttonProp.setCachedValue(pressed);
+            super.notifyPropertyChanged(buttonProp);
+          }
+        }
       }
     }
   }
