@@ -213,7 +213,6 @@ class PhilipsHueDevice extends Device {
             '@type': 'OnOffProperty',
             label: 'On/Off',
             type: 'boolean',
-            readOnly: true,
           },
           device.state.on));
 
