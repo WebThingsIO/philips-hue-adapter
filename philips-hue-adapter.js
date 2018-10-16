@@ -276,6 +276,26 @@ class PhilipsHueDevice extends Device {
       }
     }
 
+    if (device.config.hasOwnProperty('battery')) {
+      this.properties.set(
+        'battery',
+        new PhilipsHueProperty(
+          this,
+          'battery',
+          {
+            '@type': 'LevelProperty',
+            label: 'Battery',
+            type: 'number',
+            unit: 'percent',
+            readOnly: true,
+            minimum: 0,
+            maximum: 100,
+          },
+          device.config.battery
+        )
+      );
+    }
+
     this.adapter.handleDeviceAdded(this);
   }
 
@@ -335,6 +355,15 @@ class PhilipsHueDevice extends Device {
       if (tempProp.value !== temp) {
         tempProp.setCachedValue(temp);
         super.notifyPropertyChanged(tempProp);
+      }
+    }
+
+    if (this.properties.has('battery')) {
+      const battery = device.config.battery;
+      const batteryProp = this.properties.get('battery');
+      if (batteryProp.value !== battery) {
+        batteryProp.setCachedValue(battery);
+        super.notifyPropertyChanged(batteryProp);
       }
     }
   }
