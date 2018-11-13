@@ -65,7 +65,7 @@ const HUE_DIMMER_SWITCH_BUTTONS = {
     off: 4002,
     label: 'Off',
   },
-}
+};
 
 
 /**
@@ -83,6 +83,22 @@ class PhilipsHueProperty extends Property {
    * @return {Promise} a promise which resolves to the updated value.
    */
   setValue(value) {
+    if (this.readOnly) {
+      return Promise.reject('Read-only property');
+    }
+
+    if (this.hasOwnProperty('minimum')) {
+      value = Math.max(this.minimum, value);
+    }
+
+    if (this.hasOwnProperty('maximum')) {
+      value = Math.min(this.maximum, value);
+    }
+
+    if (this.type === 'integer') {
+      value = Math.round(value);
+    }
+
     const changed = this.value !== value;
     return new Promise((resolve) => {
       this.setCachedValue(value);
@@ -205,7 +221,7 @@ class PhilipsHueDevice extends Device {
             {
               label: 'Temperature',
               type: 'number',
-              unit: 'celsius',
+              unit: 'degree celsius',
               readOnly: true,
             },
             device.state.temperature / 100));
@@ -242,7 +258,8 @@ class PhilipsHueDevice extends Device {
                     type: 'boolean',
                     readOnly: true,
                   },
-                  device.state.buttonevent >= buttonInfo.start && device.state.buttonevnt < buttonInfo.off
+                  device.state.buttonevent >= buttonInfo.start &&
+                                       device.state.buttonevent < buttonInfo.off
                 )
               );
             }
@@ -297,7 +314,7 @@ class PhilipsHueDevice extends Device {
                 {
                   '@type': 'ColorTemperatureProperty',
                   label: 'Color Temperature',
-                  type: 'number',
+                  type: 'integer',
                   unit: 'kelvin',
                   minimum: 2203,
                   maximum: 6536,
@@ -317,7 +334,10 @@ class PhilipsHueDevice extends Device {
               {
                 '@type': 'BrightnessProperty',
                 label: 'Brightness',
-                type: 'number',
+                type: 'integer',
+                unit: 'percent',
+                minimum: 0,
+                maximum: 100,
               },
               level));
         }
@@ -333,7 +353,7 @@ class PhilipsHueDevice extends Device {
           {
             '@type': 'LevelProperty',
             label: 'Battery',
-            type: 'number',
+            type: 'integer',
             unit: 'percent',
             readOnly: true,
             minimum: 0,
@@ -421,7 +441,8 @@ class PhilipsHueDevice extends Device {
         if (HUE_DIMMER_SWITCH_BUTTONS.hasOwnProperty(buttonType)) {
           const buttonInfo = HUE_DIMMER_SWITCH_BUTTONS[buttonType];
           const buttonProp = this.properties.get(buttonType);
-          const pressed = device.state.buttonevent >= buttonInfo.start && device.state.buttonevent < buttonInfo.off;
+          const pressed = buttonEvent >= buttonInfo.start &&
+            buttonEvent < buttonInfo.off;
           if (buttonProp.value !== pressed) {
             buttonProp.setCachedValue(pressed);
             super.notifyPropertyChanged(buttonProp);
