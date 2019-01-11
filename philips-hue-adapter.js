@@ -9,27 +9,16 @@
 
 'use strict';
 
-const storage = require('node-persist');
 const fetch = require('node-fetch');
 const Color = require('color');
 
-let Adapter, Constants, Device, Property;
-try {
-  Adapter = require('../adapter');
-  Constants = require('../addon-constants');
-  Device = require('../device');
-  Property = require('../property');
-} catch (e) {
-  if (e.code !== 'MODULE_NOT_FOUND') {
-    throw e;
-  }
-
-  const gwa = require('gateway-addon');
-  Adapter = gwa.Adapter;
-  Constants = gwa.Constants;
-  Device = gwa.Device;
-  Property = gwa.Property;
-}
+const {
+  Adapter,
+  Constants,
+  Database,
+  Device,
+  Property,
+} = require('gateway-addon');
 
 const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
 
@@ -66,7 +55,6 @@ const HUE_DIMMER_SWITCH_BUTTONS = {
     label: 'Off',
   },
 };
-
 
 /**
  * Property of a Hue device
@@ -531,9 +519,7 @@ class PhilipsHueAdapter extends Adapter {
 
     adapterManager.addAdapter(this);
 
-    storage.init().then(() => {
-      return storage.getItem(KNOWN_BRIDGE_USERNAMES);
-    }).then((knownBridgeUsernames) => {
+    this.getKnownBridgeUsernames().then((knownBridgeUsernames) => {
       if (!knownBridgeUsernames) {
         return Promise.reject('no known bridges');
       }
@@ -546,6 +532,48 @@ class PhilipsHueAdapter extends Adapter {
       this.updateDevices();
     }).catch((e) => {
       console.error(e);
+    });
+  }
+
+  /**
+   * Migrate usernames from node-persist to gateway storage
+   * Should be removed in 0.7.1
+   */
+  async migrate() {
+    const db = new Database(this.packageName);
+    await db.open();
+    const config = await db.loadConfig();
+    if (Object.keys(config.usernames).length > 0) {
+      // Database has already been migrated
+      return;
+    }
+    const storage = require('node-persist');
+    await storage.init();
+    const current = await storage.getItem(KNOWN_BRIDGE_USERNAMES);
+    await db.saveConfig({
+      usernames: current,
+    });
+  }
+
+  /**
+   * @return {Object} bridge usernames as id and username pairs
+   */
+  async getKnownBridgeUsernames() {
+    await this.migrate();
+    const db = new Database(this.packageName);
+    await db.open();
+    const config = await db.loadConfig();
+    return config.usernames || {};
+  }
+
+  /**
+   * @param {Object} bridge usernames as id and username pairs
+   */
+  async setKnownBridgeUsernames(usernames) {
+    const db = new Database(this.packageName);
+    await db.open();
+    await db.saveConfig({
+      usernames: usernames,
     });
   }
 
@@ -565,15 +593,13 @@ class PhilipsHueAdapter extends Adapter {
       this.username = username;
       return this.updateDevices();
     }).then(() => {
-      return storage.init();
-    }).then(() => {
-      return storage.getItem(KNOWN_BRIDGE_USERNAMES);
+      return this.getKnownBridgeUsernames();
     }).then((knownBridgeUsernames) => {
       if (!knownBridgeUsernames) {
         knownBridgeUsernames = {};
       }
       knownBridgeUsernames[this.bridgeId] = this.username;
-      return storage.setItem(KNOWN_BRIDGE_USERNAMES, knownBridgeUsernames);
+      return this.setKnownBridgeUsernames(knownBridgeUsernames);
     }).catch((e) => {
       console.error(e);
       if (this.pairing && Date.now() < this.pairingEnd) {
