@@ -46,13 +46,28 @@
     "plugin": true,
     "exec": "{nodeLoader} {path}",
     "config": {
-      "usernames": {}
+      "usernames": []
     },
     "schema": {
       "type": "object",
       "properties": {
         "usernames": {
-          "type": "object"
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "username"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     }
