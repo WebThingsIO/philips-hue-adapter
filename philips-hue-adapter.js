@@ -524,7 +524,13 @@ class PhilipsHueAdapter extends Adapter {
         return Promise.reject('no known bridges');
       }
 
-      const username = knownBridgeUsernames[this.bridgeId];
+      let username = null;
+      for (const elt of knownBridgeUsernames) {
+        if (elt.id === this.bridgeId) {
+          username = elt.username;
+          break;
+        }
+      }
       if (!username) {
         return Promise.reject('no known username');
       }
@@ -543,20 +549,28 @@ class PhilipsHueAdapter extends Adapter {
     const db = new Database(this.packageName);
     await db.open();
     const config = await db.loadConfig();
-    if (Object.keys(config.usernames).length > 0) {
+    if (config.usernames.length > 0) {
       // Database has already been migrated
       return;
     }
     const storage = require('node-persist');
     await storage.init();
     const current = await storage.getItem(KNOWN_BRIDGE_USERNAMES);
+    const usernames = [];
+    for (const id in current) {
+      usernames.push({
+        id: id,
+        username: current[id],
+      });
+    }
+
     await db.saveConfig({
-      usernames: current,
+      usernames: usernames,
     });
   }
 
   /**
-   * @return {Object} bridge usernames as id and username pairs
+   * @return {Array} bridge usernames as an array of id and username pairs
    */
   async getKnownBridgeUsernames() {
     await this.migrate();
@@ -567,7 +581,7 @@ class PhilipsHueAdapter extends Adapter {
   }
 
   /**
-   * @param {Object} bridge usernames as id and username pairs
+   * @param {Array} bridge usernames as an array of id and username pairs
    */
   async setKnownBridgeUsernames(usernames) {
     const db = new Database(this.packageName);
@@ -596,9 +610,23 @@ class PhilipsHueAdapter extends Adapter {
       return this.getKnownBridgeUsernames();
     }).then((knownBridgeUsernames) => {
       if (!knownBridgeUsernames) {
-        knownBridgeUsernames = {};
+        knownBridgeUsernames = [];
       }
-      knownBridgeUsernames[this.bridgeId] = this.username;
+      let updated = false;
+      for (let i = 0; i < knownBridgeUsernames.length; i++) {
+        const elt = knownBridgeUsernames[i];
+        if (elt.id === this.bridgeId) {
+          elt.username = this.username;
+          updated = true;
+          break;
+        }
+      }
+      if (!updated) {
+        knownBridgeUsernames.push({
+          id: this.bridgeId,
+          username: this.username,
+        });
+      }
       return this.setKnownBridgeUsernames(knownBridgeUsernames);
     }).catch((e) => {
       console.error(e);
@@ -611,7 +639,8 @@ class PhilipsHueAdapter extends Adapter {
 
   /**
    * Perform a single attempt at pairing with a Hue hub
-   * @return {Promise} Resolved with username if pairing succeeds
+   * @return {Promise} Resolved with username if pairing succeed
+   * });
    */
   pair() {
     if (this.username) {
