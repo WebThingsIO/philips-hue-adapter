@@ -199,8 +199,8 @@ class PhilipsHueDevice extends Device {
             },
             device.state.presence));
       } else if (device.state.hasOwnProperty('temperature')) {
-        // TODO: Fill in proper types once they are implemented
         this.type = Constants.THING_TYPE_UNKNOWN_THING;
+        this['@type'] = ['TemperatureSensor'];
         this.properties.set(
           'temperature',
           new PhilipsHueProperty(
@@ -209,11 +209,13 @@ class PhilipsHueDevice extends Device {
             {
               label: 'Temperature',
               type: 'number',
+              '@type': 'TemperatureProperty',
               unit: 'degree celsius',
               readOnly: true,
             },
             device.state.temperature / 100));
       } else if (device.state.hasOwnProperty('daylight')) {
+        // TODO: Fill in proper types once they are implemented
         this.type = Constants.THING_TYPE_BINARY_SENSOR;
         this['@type'] = ['BinarySensor'];
         this.properties.set(
