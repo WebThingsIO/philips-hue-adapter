@@ -334,7 +334,7 @@ class PhilipsHueDevice extends Device {
       }
     }
 
-    if (device.config.hasOwnProperty('battery')) {
+    if (device.config && device.config.hasOwnProperty('battery')) {
       this.properties.set(
         'battery',
         new PhilipsHueProperty(
