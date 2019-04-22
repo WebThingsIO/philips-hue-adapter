@@ -220,13 +220,13 @@ class PhilipsHueDevice extends Device {
             device.state.temperature / 100));
       } else if (device.state.hasOwnProperty('daylight')) {
         // TODO: Fill in proper types once they are implemented
-        this.type = Constants.THING_TYPE_BINARY_SENSOR;
-        this['@type'] = ['BinarySensor'];
+        this.type = Constants.THING_TYPE_MULTI_LEVEL_SENSOR;
+        this['@type'] = ['MultiLevelSensor'];
         this.properties.set(
-          'on',
+          'daylight',
           new PhilipsHueProperty(
             this,
-            'on',
+            'daylight',
             {
               '@type': 'BooleanProperty',
               label: 'Daylight',
@@ -234,6 +234,32 @@ class PhilipsHueDevice extends Device {
               readOnly: true,
             },
             device.state.daylight));
+
+        this.properties.set(
+          'dark',
+          new PhilipsHueProperty(
+            this,
+            'dark',
+            {
+              '@type': 'BooleanProperty',
+              label: 'Dark',
+              type: 'boolean',
+              readOnly: true,
+            },
+            device.state.dark));
+
+        this.properties.set(
+          'lightlevel',
+          new PhilipsHueProperty(
+            this,
+            'lightlevel',
+            {
+              '@type': 'LevelProperty',
+              label: 'Lightlevel',
+              type: 'integer',
+              readOnly: true,
+            },
+            device.state.lightlevel));
       } else if (device.state.hasOwnProperty('buttonevent')) {
         this.type = Constants.THING_TYPE_BINARY_SENSOR;
         this['@type'] = ['PushButton'];
@@ -372,8 +398,6 @@ class PhilipsHueDevice extends Device {
 
       if (device.state.hasOwnProperty('on')) {
         newValue = device.state.on;
-      } else if (device.state.hasOwnProperty('daylight')) {
-        newValue = device.state.daylight;
       } else if (device.state.hasOwnProperty('presence')) {
         newValue = device.state.presence;
       }
@@ -383,6 +407,10 @@ class PhilipsHueDevice extends Device {
         super.notifyPropertyChanged(onProp);
       }
     }
+
+    this.copyValue(device.state, 'daylight', 'daylight');
+    this.copyValue(device.state, 'dark', 'dark');
+    this.copyValue(device.state, 'lightlevel', 'lightlevel');
 
     if (this.properties.has('color') && device.state.on) {
       const color = stateToCSS(device.state);
@@ -442,6 +470,19 @@ class PhilipsHueDevice extends Device {
             super.notifyPropertyChanged(buttonProp);
           }
         }
+      }
+    }
+  }
+
+  copyValue(state, stateName, propertyName) {
+    if (this.properties.has(propertyName)) {
+      const property = this.properties.get(propertyName);
+      const oldValue = property.value;
+      const newValue = state[stateName];
+
+      if (oldValue !== newValue) {
+        property.setCachedValue(newValue);
+        super.notifyPropertyChanged(property);
       }
     }
   }
