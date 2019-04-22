@@ -87,6 +87,10 @@ class PhilipsHueProperty extends Property {
       value = Math.round(value);
     }
 
+    if(this.type === 'boolean') {
+      value = !!value;
+    }
+
     const changed = this.value !== value;
     return new Promise((resolve) => {
       this.setCachedValue(value);
