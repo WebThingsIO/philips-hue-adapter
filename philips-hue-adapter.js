@@ -251,7 +251,7 @@ class PhilipsHueDevice extends Device {
             'lightlevel',
             {
               '@type': 'LevelProperty',
-              label: 'Lightlevel',
+              label: 'Light Level',
               type: 'integer',
               readOnly: true,
             },
