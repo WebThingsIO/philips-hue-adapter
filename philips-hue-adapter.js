@@ -760,12 +760,16 @@ class PhilipsHueAdapter extends Adapter {
       if (this.scheduledUpdate) {
         clearTimeout(this.scheduledUpdate);
       }
+      this.updateInterval = 1000;
       this.scheduledUpdate = setTimeout(this.updateDevices,
                                         this.updateInterval);
     }).catch((e) => {
       console.warn('Error updating devices', e);
       if (this.scheduledUpdate) {
         clearTimeout(this.scheduledUpdate);
+      }
+      if (this.updateInterval < 15000) {
+        this.updateInterval *= 2;
       }
       this.scheduledUpdate = setTimeout(this.updateDevices,
                                         this.updateInterval);
