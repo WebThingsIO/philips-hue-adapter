@@ -87,7 +87,7 @@ class PhilipsHueProperty extends Property {
       value = Math.round(value);
     }
 
-    if(this.type === 'boolean') {
+    if (this.type === 'boolean') {
       value = !!value;
     }
 
