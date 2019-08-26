@@ -20,8 +20,6 @@ const {
   Property,
 } = require('gateway-addon');
 
-const KNOWN_BRIDGE_USERNAMES = 'PhilipsHueAdapter.knownBridgeUsernames';
-
 const SUPPORTED_SENSOR_TYPES = {
   Daylight: true,
   ZLLTemperature: true,
@@ -589,38 +587,9 @@ class PhilipsHueAdapter extends Adapter {
   }
 
   /**
-   * Migrate usernames from node-persist to gateway storage
-   * Should be removed in 0.7.1
-   */
-  async migrate() {
-    const db = new Database(this.packageName);
-    await db.open();
-    const config = await db.loadConfig();
-    if (config.usernames.length > 0) {
-      // Database has already been migrated
-      return;
-    }
-    const storage = require('node-persist');
-    await storage.init();
-    const current = await storage.getItem(KNOWN_BRIDGE_USERNAMES);
-    const usernames = [];
-    for (const id in current) {
-      usernames.push({
-        id: id,
-        username: current[id],
-      });
-    }
-
-    await db.saveConfig({
-      usernames: usernames,
-    });
-  }
-
-  /**
    * @return {Array} bridge usernames as an array of id and username pairs
    */
   async getKnownBridgeUsernames() {
-    await this.migrate();
     const db = new Database(this.packageName);
     await db.open();
     const config = await db.loadConfig();
