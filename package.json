@@ -3,6 +3,9 @@
   "display_name": "Philips Hue",
   "version": "0.7.3",
   "description": "Mozilla WebThings Gateway Philips Hue Adapter. Press the link button on your Hue bridge to pair devices.",
+  "scripts": {
+    "lint": "eslint ."
+  },
   "main": "index.js",
   "keywords": [
     "mozilla",
@@ -24,12 +27,11 @@
   },
   "dependencies": {
     "color": "^2.0.1",
-    "node-persist": "^2.1.0",
-    "node-ssdp": "^3.3.0"
+    "node-ssdp": "^4.0.0"
   },
   "devDependencies": {
-    "babel-eslint": "^10.0.1",
-    "eslint": "^5.13.0"
+    "babel-eslint": "^10.0.3",
+    "eslint": "^6.2.2"
   },
   "files": [
     "LICENSE",
