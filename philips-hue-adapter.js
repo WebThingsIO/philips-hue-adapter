@@ -14,7 +14,6 @@ const Color = require('color');
 
 const {
   Adapter,
-  Constants,
   Database,
   Device,
   Property,
@@ -186,7 +185,6 @@ class PhilipsHueDevice extends Device {
 
     if (deviceId.startsWith('sensors')) {
       if (device.state.hasOwnProperty('presence')) {
-        this.type = Constants.THING_TYPE_BINARY_SENSOR;
         this['@type'] = ['MotionSensor'];
         this.properties.set(
           'on',
@@ -201,7 +199,6 @@ class PhilipsHueDevice extends Device {
             },
             device.state.presence));
       } else if (device.state.hasOwnProperty('temperature')) {
-        this.type = Constants.THING_TYPE_UNKNOWN_THING;
         this['@type'] = ['TemperatureSensor'];
         this.properties.set(
           'temperature',
@@ -218,7 +215,6 @@ class PhilipsHueDevice extends Device {
             device.state.temperature / 100));
       } else if (device.state.hasOwnProperty('daylight')) {
         // TODO: Fill in proper types once they are implemented
-        this.type = Constants.THING_TYPE_MULTI_LEVEL_SENSOR;
         this['@type'] = ['MultiLevelSensor'];
         this.properties.set(
           'daylight',
@@ -259,7 +255,6 @@ class PhilipsHueDevice extends Device {
             },
             device.state.lightlevel));
       } else if (device.state.hasOwnProperty('buttonevent')) {
-        this.type = Constants.THING_TYPE_BINARY_SENSOR;
         this['@type'] = ['PushButton'];
         if (device.type === 'ZLLSwitch') {
           for (const buttonType in HUE_DIMMER_SWITCH_BUTTONS) {
@@ -285,7 +280,6 @@ class PhilipsHueDevice extends Device {
         }
       }
     } else {
-      this.type = Constants.THING_TYPE_ON_OFF_LIGHT;
       this['@type'] = ['OnOffSwitch', 'Light'];
       this.properties.set(
         'on',
@@ -301,7 +295,6 @@ class PhilipsHueDevice extends Device {
 
       if (device.state.hasOwnProperty('bri')) {
         if (device.state.hasOwnProperty('xy')) {
-          this.type = Constants.THING_TYPE_ON_OFF_COLOR_LIGHT;
           this['@type'].push('ColorControl');
 
           const color = stateToCSS(device.state);
@@ -317,30 +310,25 @@ class PhilipsHueDevice extends Device {
                 type: 'string',
               },
               color));
-        } else {
-          if (device.state.hasOwnProperty('ct')) {
-            this.type = Constants.THING_TYPE_DIMMABLE_COLOR_LIGHT;
-            this['@type'].push('ColorControl');
+        } else if (device.state.hasOwnProperty('ct')) {
+          this['@type'].push('ColorControl');
 
-            const colorTemperature = stateToColorTemperature(device.state);
+          const colorTemperature = stateToColorTemperature(device.state);
 
-            this.properties.set(
+          this.properties.set(
+            'colorTemperature',
+            new PhilipsHueProperty(
+              this,
               'colorTemperature',
-              new PhilipsHueProperty(
-                this,
-                'colorTemperature',
-                {
-                  '@type': 'ColorTemperatureProperty',
-                  label: 'Color Temperature',
-                  type: 'integer',
-                  unit: 'kelvin',
-                  minimum: 2203,
-                  maximum: 6536,
-                },
-                colorTemperature));
-          } else {
-            this.type = Constants.THING_TYPE_DIMMABLE_LIGHT;
-          }
+              {
+                '@type': 'ColorTemperatureProperty',
+                label: 'Color Temperature',
+                type: 'integer',
+                unit: 'kelvin',
+                minimum: 2203,
+                maximum: 6536,
+              },
+              colorTemperature));
 
           const level = stateToLevel(device.state);
 

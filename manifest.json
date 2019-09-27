@@ -1,0 +1,47 @@
+{
+  "author": "Mozilla IoT",
+  "description": "Mozilla WebThings Gateway Philips Hue Adapter. Press the link button on your Hue bridge to pair devices.",
+  "gateway_specific_settings": {
+    "webthings": {
+      "exec": "{nodeLoader} {path}",
+      "primary_type": "adapter",
+      "strict_max_version": "*",
+      "strict_min_version": "0.10.0"
+    }
+  },
+  "homepage_url": "https://github.com/mozilla-iot/philips-hue-adapter",
+  "id": "philips-hue-adapter",
+  "license": "MPL-2.0",
+  "manifest_version": 1,
+  "name": "Philips Hue",
+  "options": {
+    "default": {
+      "usernames": []
+    },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "usernames": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "username"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "short_name": "Philips Hue",
+  "version": "0.8.0"
+}
