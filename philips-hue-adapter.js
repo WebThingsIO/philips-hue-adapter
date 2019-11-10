@@ -346,6 +346,25 @@ class PhilipsHueDevice extends Device {
                 maximum: 100,
               },
               level));
+        } else {
+          this['@type'].push('BrightnessProperty');
+
+          const level = stateToLevel(device.state);
+
+          this.properties.set(
+            'level',
+            new PhilipsHueProperty(
+              this,
+              'level',
+              {
+                '@type': 'BrightnessProperty',
+                label: 'Brightness',
+                type: 'integer',
+                unit: 'percent',
+                minimum: 0,
+                maximum: 100,
+              },
+              level));
         }
       }
     }
