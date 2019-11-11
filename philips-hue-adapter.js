@@ -347,8 +347,6 @@ class PhilipsHueDevice extends Device {
               },
               level));
         } else {
-          this['@type'].push('BrightnessProperty');
-
           const level = stateToLevel(device.state);
 
           this.properties.set(
