@@ -88,13 +88,9 @@ class PhilipsHueProperty extends Property {
       value = !!value;
     }
 
-    const changed = this.value !== value;
     return new Promise((resolve) => {
-      this.setCachedValue(value);
+      this.setCachedValueAndNotify(value);
       resolve(this.value);
-      if (changed) {
-        this.device.notifyPropertyChanged(this);
-      }
     });
   }
 }
@@ -406,8 +402,7 @@ class PhilipsHueDevice extends Device {
       }
 
       if (onProp.value !== newValue) {
-        onProp.setCachedValue(newValue);
-        super.notifyPropertyChanged(onProp);
+        onProp.setCachedValueAndNotify(newValue);
       }
     }
 
@@ -419,8 +414,7 @@ class PhilipsHueDevice extends Device {
       const color = stateToCSS(device.state);
       const colorProp = this.properties.get('color');
       if (color.toUpperCase() !== colorProp.value.toUpperCase()) {
-        colorProp.setCachedValue(color);
-        super.notifyPropertyChanged(colorProp);
+        colorProp.setCachedValueAndNotify(color);
       }
     }
 
@@ -428,8 +422,7 @@ class PhilipsHueDevice extends Device {
       const colorTemperature = stateToColorTemperature(device.state);
       const colorTemperatureProp = this.properties.get('colorTemperature');
       if (colorTemperatureProp.value !== colorTemperature) {
-        colorTemperatureProp.setCachedValue(colorTemperature);
-        super.notifyPropertyChanged(colorTemperatureProp);
+        colorTemperatureProp.setCachedValueAndNotify(colorTemperature);
       }
     }
 
@@ -437,8 +430,7 @@ class PhilipsHueDevice extends Device {
       const level = stateToLevel(device.state);
       const levelProp = this.properties.get('level');
       if (levelProp.value !== level) {
-        levelProp.setCachedValue(level);
-        super.notifyPropertyChanged(levelProp);
+        levelProp.setCachedValueAndNotify(level);
       }
     }
 
@@ -446,8 +438,7 @@ class PhilipsHueDevice extends Device {
       const temp = device.state.temperature / 100;
       const tempProp = this.properties.get('temperature');
       if (tempProp.value !== temp) {
-        tempProp.setCachedValue(temp);
-        super.notifyPropertyChanged(tempProp);
+        tempProp.setCachedValueAndNotify(temp);
       }
     }
 
@@ -455,8 +446,7 @@ class PhilipsHueDevice extends Device {
       const battery = device.config.battery;
       const batteryProp = this.properties.get('battery');
       if (batteryProp.value !== battery) {
-        batteryProp.setCachedValue(battery);
-        super.notifyPropertyChanged(batteryProp);
+        batteryProp.setCachedValueAndNotify(battery);
       }
     }
 
@@ -469,8 +459,7 @@ class PhilipsHueDevice extends Device {
           const pressed = buttonEvent >= buttonInfo.start &&
             buttonEvent < buttonInfo.off;
           if (buttonProp.value !== pressed) {
-            buttonProp.setCachedValue(pressed);
-            super.notifyPropertyChanged(buttonProp);
+            buttonProp.setCachedValueAndNotify(pressed);
           }
         }
       }
