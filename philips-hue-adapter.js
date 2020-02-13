@@ -473,8 +473,7 @@ class PhilipsHueDevice extends Device {
       const newValue = state[stateName];
 
       if (oldValue !== newValue) {
-        property.setCachedValue(newValue);
-        super.notifyPropertyChanged(property);
+        property.setCachedValueAndNotify(newValue);
       }
     }
   }

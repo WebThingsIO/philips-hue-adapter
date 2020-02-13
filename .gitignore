@@ -1,3 +1,4 @@
-node_modules/
-SHA256SUMS
+*.sha256sum
 *.tgz
+SHA256SUMS
+node_modules/

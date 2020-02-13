@@ -1,7 +1,7 @@
 {
   "name": "philips-hue-adapter",
   "display_name": "Philips Hue",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Mozilla WebThings Gateway Philips Hue Adapter. Press the link button on your Hue bridge to pair devices.",
   "scripts": {
     "lint": "eslint ."
@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "babel-eslint": "^10.0.3",
-    "eslint": "^6.4.0"
+    "eslint": "^6.8.0"
   },
   "files": [
     "LICENSE",
