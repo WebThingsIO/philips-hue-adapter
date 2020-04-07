@@ -10,6 +10,7 @@
 
 const PhilipsHueAdapter = require('./philips-hue-adapter');
 const fetch = require('node-fetch');
+const manifest = require('./manifest.json');
 const SsdpClient = require('node-ssdp').Client;
 const url = require('url');
 
@@ -19,7 +20,7 @@ const bridgeAdapters = {};
  * Search for bridges using local SSDP
  * @return {Promise}
  */
-function ssdpSearch(adapterManager, manifest) {
+function ssdpSearch(adapterManager) {
   const client = new SsdpClient();
   client.on('response', (headers) => {
     let bridgeId = headers['HUE-BRIDGEID'];
@@ -33,7 +34,7 @@ function ssdpSearch(adapterManager, manifest) {
       return;
     }
     bridgeAdapters[bridgeId] =
-      new PhilipsHueAdapter(adapterManager, manifest.name, bridgeId, bridgeIp);
+      new PhilipsHueAdapter(adapterManager, manifest.id, bridgeId, bridgeIp);
   });
 
   return client.start().then(() => {
@@ -45,7 +46,7 @@ function ssdpSearch(adapterManager, manifest) {
  * Search for bridges using Philips's N-UPnP web API
  * @return {Promise}
  */
-function discoverBridges(adapterManager, manifest) {
+function discoverBridges(adapterManager) {
   return fetch('https://www.meethue.com/api/nupnp').then((res) => {
     return res.json();
   }).then((bridges) => {
@@ -61,7 +62,7 @@ function discoverBridges(adapterManager, manifest) {
         continue;
       }
       bridgeAdapters[bridge.id] = new PhilipsHueAdapter(
-        adapterManager, manifest.name, bridge.id, bridge.internalipaddress);
+        adapterManager, manifest.id, bridge.id, bridge.internalipaddress);
     }
   }).catch((e) => {
     console.error('discoverBridges', e);
@@ -71,9 +72,9 @@ function discoverBridges(adapterManager, manifest) {
 /**
  * Perform both searches concurrently
  */
-function loadPhilipsHueAdapters(adapterManager, manifest) {
-  ssdpSearch(adapterManager, manifest);
-  discoverBridges(adapterManager, manifest);
+function loadPhilipsHueAdapters(adapterManager) {
+  ssdpSearch(adapterManager);
+  discoverBridges(adapterManager);
 }
 
 module.exports = loadPhilipsHueAdapters;

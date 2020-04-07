@@ -88,6 +88,80 @@ class PhilipsHueProperty extends Property {
       value = !!value;
     }
 
+    switch (this.name) {
+      case 'color': {
+        this.device.adapter.sendProperties(
+          this.device.deviceId,
+          cssToState(value)
+        );
+
+        const colorModeProp = this.device.findProperty('colorMode');
+        if (colorModeProp) {
+          colorModeProp.setCachedValueAndNotify('color');
+        }
+        break;
+      }
+      case 'colorTemperature': {
+        this.device.adapter.sendProperties(
+          this.device.deviceId,
+          colorTemperatureToState(value)
+        );
+
+        const colorModeProp = this.device.findProperty('colorMode');
+        if (colorModeProp) {
+          colorModeProp.setCachedValueAndNotify('temperature');
+        }
+        break;
+      }
+      case 'on': {
+        let properties = {};
+
+        const colorProp = this.device.findProperty('color');
+        const colorTempProp = this.device.findProperty('colorTemperature');
+        const colorModeProp = this.device.findProperty('colorMode');
+        const levelProp = this.device.findProperty('level');
+
+        if ((colorModeProp && colorModeProp.value === 'color') ||
+            (!colorModeProp && colorProp)) {
+          // We might be turning on after changing the color/level
+          properties = Object.assign(
+            properties,
+            cssToState(colorProp.value)
+          );
+        } else if ((colorModeProp && colorModeProp.value === 'temperature') ||
+                   (!colorModeProp && colorTempProp)) {
+          properties = Object.assign(
+            properties,
+            colorTemperatureToState(colorTempProp.value)
+          );
+        }
+
+        if (levelProp) {
+          properties = Object.assign(
+            properties,
+            levelToState(levelProp.value)
+          );
+        }
+
+        properties.on = value;
+
+        this.device.adapter.sendProperties(
+          this.device.deviceId,
+          properties
+        );
+        break;
+      }
+      case 'level': {
+        this.device.adapter.sendProperties(
+          this.device.deviceId,
+          levelToState(value)
+        );
+        break;
+      }
+      default:
+        break;
+    }
+
     return new Promise((resolve) => {
       this.setCachedValueAndNotify(value);
       resolve(this.value);
@@ -124,6 +198,19 @@ function stateToLevel(state) {
  */
 function stateToColorTemperature(state) {
   return Math.round(1e6 / state.ct);
+}
+
+/**
+ * Convert from light properties to a color mode value.
+ * @param {Object} state
+ * @return {number} number representing color mode value
+ */
+function stateToColorMode(state) {
+  if (state.colormode === 'ct') {
+    return 'temperature';
+  }
+
+  return 'color';
 }
 
 /**
@@ -193,7 +280,9 @@ class PhilipsHueDevice extends Device {
               type: 'boolean',
               readOnly: true,
             },
-            device.state.presence));
+            device.state.presence
+          )
+        );
       } else if (device.state.hasOwnProperty('temperature')) {
         this['@type'] = ['TemperatureSensor'];
         this.properties.set(
@@ -208,7 +297,9 @@ class PhilipsHueDevice extends Device {
               unit: 'degree celsius',
               readOnly: true,
             },
-            device.state.temperature / 100));
+            device.state.temperature / 100
+          )
+        );
       } else if (device.state.hasOwnProperty('daylight')) {
         // TODO: Fill in proper types once they are implemented
         this['@type'] = ['MultiLevelSensor'];
@@ -223,7 +314,9 @@ class PhilipsHueDevice extends Device {
               type: 'boolean',
               readOnly: true,
             },
-            device.state.daylight));
+            device.state.daylight
+          )
+        );
 
         this.properties.set(
           'dark',
@@ -236,7 +329,9 @@ class PhilipsHueDevice extends Device {
               type: 'boolean',
               readOnly: true,
             },
-            device.state.dark));
+            device.state.dark
+          )
+        );
 
         this.properties.set(
           'lightlevel',
@@ -249,7 +344,9 @@ class PhilipsHueDevice extends Device {
               type: 'integer',
               readOnly: true,
             },
-            device.state.lightlevel));
+            device.state.lightlevel
+          )
+        );
       } else if (device.state.hasOwnProperty('buttonevent')) {
         this['@type'] = ['PushButton'];
         if (device.type === 'ZLLSwitch') {
@@ -287,79 +384,98 @@ class PhilipsHueDevice extends Device {
             label: 'On/Off',
             type: 'boolean',
           },
-          device.state.on));
+          device.state.on
+        )
+      );
+
+      if (device.state.hasOwnProperty('xy')) {
+        this['@type'].push('ColorControl');
+
+        const color = stateToCSS(device.state);
+
+        this.properties.set(
+          'color',
+          new PhilipsHueProperty(
+            this,
+            'color',
+            {
+              '@type': 'ColorProperty',
+              label: 'Color',
+              type: 'string',
+            },
+            color
+          )
+        );
+      }
+
+      if (device.state.hasOwnProperty('ct')) {
+        if (!this['@type'].includes('ColorControl')) {
+          this['@type'].push('ColorControl');
+        }
+
+        const colorTemperature = stateToColorTemperature(device.state);
+
+        this.properties.set(
+          'colorTemperature',
+          new PhilipsHueProperty(
+            this,
+            'colorTemperature',
+            {
+              '@type': 'ColorTemperatureProperty',
+              label: 'Color Temperature',
+              type: 'integer',
+              unit: 'kelvin',
+              minimum: 2203,
+              maximum: 6536,
+            },
+            colorTemperature
+          )
+        );
+      }
+
+      if (this.properties.has('color') &&
+          this.properties.has('colorTemperature')) {
+        const colorMode = stateToColorMode(device.state);
+
+        this.properties.set(
+          'colorMode',
+          new PhilipsHueProperty(
+            this,
+            'colorMode',
+            {
+              '@type': 'ColorModeProperty',
+              label: 'Color Mode',
+              type: 'string',
+              enum: [
+                'color',
+                'temperature',
+              ],
+              readOnly: true,
+            },
+            colorMode
+          )
+        );
+      }
 
       if (device.state.hasOwnProperty('bri')) {
-        if (device.state.hasOwnProperty('xy')) {
-          this['@type'].push('ColorControl');
+        const level = stateToLevel(device.state);
 
-          const color = stateToCSS(device.state);
-
-          this.properties.set(
-            'color',
-            new PhilipsHueProperty(
-              this,
-              'color',
-              {
-                '@type': 'ColorProperty',
-                label: 'Color',
-                type: 'string',
-              },
-              color));
-        } else if (device.state.hasOwnProperty('ct')) {
-          this['@type'].push('ColorControl');
-
-          const colorTemperature = stateToColorTemperature(device.state);
-
-          this.properties.set(
-            'colorTemperature',
-            new PhilipsHueProperty(
-              this,
-              'colorTemperature',
-              {
-                '@type': 'ColorTemperatureProperty',
-                label: 'Color Temperature',
-                type: 'integer',
-                unit: 'kelvin',
-                minimum: 2203,
-                maximum: 6536,
-              },
-              colorTemperature));
-
-          const level = stateToLevel(device.state);
-
-          this.properties.set(
+        this.properties.set(
+          'level',
+          new PhilipsHueProperty(
+            this,
             'level',
-            new PhilipsHueProperty(
-              this,
-              'level',
-              {
-                '@type': 'BrightnessProperty',
-                label: 'Brightness',
-                type: 'integer',
-                unit: 'percent',
-                minimum: 0,
-                maximum: 100,
-              },
-              level));
-        } else {
-          const level = stateToLevel(device.state);
-
-          this.properties.set(
-            'level',
-            new PhilipsHueProperty(
-              this,
-              'level',
-              {
-                '@type': 'BrightnessProperty',
-                label: 'Brightness',
-                type: 'integer',
-                unit: 'percent',
-                minimum: 0,
-                maximum: 100,
-              },
-              level));
-        }
+            {
+              '@type': 'BrightnessProperty',
+              label: 'Brightness',
+              type: 'integer',
+              unit: 'percent',
+              minimum: 0,
+              maximum: 100,
+            },
+            level
+          )
+        );
       }
     }
 
@@ -426,6 +542,14 @@ class PhilipsHueDevice extends Device {
       }
     }
 
+    if (this.properties.has('colorMode') && device.state.on) {
+      const colorMode = stateToColorMode(device.state);
+      const colorModeProp = this.properties.get('colorMode');
+      if (colorModeProp.value !== colorMode) {
+        colorModeProp.setCachedValueAndNotify(colorMode);
+      }
+    }
+
     if (this.properties.has('level')) {
       const level = stateToLevel(device.state);
       const levelProp = this.properties.get('level');
@@ -476,64 +600,6 @@ class PhilipsHueDevice extends Device {
         property.setCachedValueAndNotify(newValue);
       }
     }
-  }
-
-  /**
-   * When a property changes notify the Adapter to communicate with the bridge
-   * TODO: batch property changes to not spam the bridge
-   * @param {PhilipsHueProperty} property
-   */
-  notifyPropertyChanged(property) {
-    super.notifyPropertyChanged(property);
-    let properties = null;
-    switch (property.name) {
-      case 'color': {
-        properties = cssToState(this.properties.get('color').value);
-        break;
-      }
-      case 'colorTemperature': {
-        properties = colorTemperatureToState(
-          this.properties.get('colorTemperature').value);
-        break;
-      }
-      case 'on': {
-        properties = {};
-
-        // We might be turning on after changing the color/level
-        if (this.properties.has('color')) {
-          properties = Object.assign(
-            properties,
-            cssToState(this.properties.get('color').value));
-        }
-
-        if (this.properties.has('colorTemperature')) {
-          properties = Object.assign(
-            properties,
-            colorTemperatureToState(
-              this.properties.get('colorTemperature').value));
-        }
-
-        if (this.properties.has('level')) {
-          properties = Object.assign(
-            properties,
-            levelToState(this.properties.get('level').value));
-        }
-
-        properties.on = this.properties.get('on').value;
-        break;
-      }
-      case 'level': {
-        properties = levelToState(this.properties.get('level').value);
-        break;
-      }
-      default:
-        console.warn('Unknown property:', property.name);
-        return;
-    }
-    if (!properties) {
-      return;
-    }
-    this.adapter.sendProperties(this.deviceId, properties);
   }
 }
 
