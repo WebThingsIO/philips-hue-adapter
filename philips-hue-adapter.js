@@ -296,6 +296,7 @@ class PhilipsHueDevice extends Device {
               '@type': 'TemperatureProperty',
               unit: 'degree celsius',
               readOnly: true,
+              multipleOf: 0.1,
             },
             device.state.temperature / 100
           )
