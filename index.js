@@ -47,7 +47,7 @@ function ssdpSearch(adapterManager) {
  * @return {Promise}
  */
 function discoverBridges(adapterManager) {
-  return fetch('https://www.meethue.com/api/nupnp').then((res) => {
+  return fetch('https://discovery.meethue.com').then((res) => {
     return res.json();
   }).then((bridges) => {
     if (!bridges) {
@@ -62,7 +62,11 @@ function discoverBridges(adapterManager) {
         continue;
       }
       bridgeAdapters[bridge.id] = new PhilipsHueAdapter(
-        adapterManager, manifest.id, bridge.id, bridge.internalipaddress);
+        adapterManager,
+        manifest.id,
+        bridge.id,
+        bridge.internalipaddress
+      );
     }
   }).catch((e) => {
     console.error('discoverBridges', e);
