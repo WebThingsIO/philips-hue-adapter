@@ -32,31 +32,31 @@ const SUPPORTED_SENSOR_TYPES = {
 
 const HUE_DIMMER_SWITCH_BUTTONS = {
   buttonOn: {
-    initial_press: 1000,
+    initialPress: 1000,
     repeat: 1001,
-    short_release: 1002,
-    long_release: 1003,
+    shortRelease: 1002,
+    longRelease: 1003,
     label: 'On',
   },
   buttonBrighten: {
-    initial_press: 2000,
+    initialPress: 2000,
     repeat: 2001,
-    short_release: 2002,
-    long_release: 2003,
+    shortRelease: 2002,
+    longRelease: 2003,
     label: 'Dim up',
   },
   buttonDim: {
-    initial_press: 3000,
+    initialPress: 3000,
     repeat: 3001,
-    short_release: 3002,
-    long_release: 3003,
+    shortRelease: 3002,
+    longRelease: 3003,
     label: 'Dim down',
   },
   buttonOff: {
-    initial_press: 4000,
+    initialPress: 4000,
     repeat: 4001,
-    short_release: 4002,
-    long_release: 4003,
+    shortRelease: 4002,
+    longRelease: 4003,
     label: 'Off',
   },
 };
@@ -380,17 +380,16 @@ class PhilipsHueDevice extends Device {
                     type: 'boolean',
                     readOnly: true,
                   },
-                  device.state.buttonevent >= buttonInfo.initial_press &&
-                    device.state.buttonevent <= buttonInfo.long_release
+                  device.state.buttonevent >= buttonInfo.initialPress &&
+                    device.state.buttonevent <= buttonInfo.longRelease
                 )
               );
               this.properties.set(
-                'lastupdated',
+                'lastUpdated',
                 new PhilipsHueProperty(
                   this,
                   buttonType,
                   {
-                    '@type': 'LastUpdatedProperty',
                     label: buttonInfo.label,
                     type: 'date',
                     readOnly: true,
@@ -605,24 +604,24 @@ class PhilipsHueDevice extends Device {
     }
 
     if (this.properties.has('buttonOn')) {
-      const buttonevent = device.state.buttonevent;
-      const lastupdated = device.state.lastupdated;
-      const lastupdatedProp = this.properties.get('lastupdated');
+      const buttonEvent = device.state.buttonevent;
+      const lastUpdated = device.state.lastupdated;
+      const lastUpdatedProp = this.properties.get('lastUpdated');
 
       for (const buttonType in HUE_DIMMER_SWITCH_BUTTONS) {
         if (HUE_DIMMER_SWITCH_BUTTONS.hasOwnProperty(buttonType)) {
           const buttonInfo = HUE_DIMMER_SWITCH_BUTTONS[buttonType];
           const buttonProp = this.properties.get(buttonType);
 
-          const pressed = buttonevent >= buttonInfo.initial_press &&
-            buttonevent <= buttonInfo.long_release;
+          const pressed = buttonEvent >= buttonInfo.initialPress &&
+            buttonEvent <= buttonInfo.longRelease;
 
           buttonProp.setCachedValueAndNotify(pressed &&
-            lastupdatedProp.value !== lastupdated);
+            lastUpdatedProp.value !== lastUpdated);
         }
       }
 
-      lastupdatedProp.setCachedValueAndNotify(lastupdated);
+      lastUpdatedProp.setCachedValueAndNotify(lastUpdated);
     }
   }
 
