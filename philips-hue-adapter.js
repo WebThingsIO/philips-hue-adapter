@@ -384,20 +384,20 @@ class PhilipsHueDevice extends Device {
                     device.state.buttonevent <= buttonInfo.longRelease
                 )
               );
-              this.properties.set(
-                'lastUpdated',
-                new PhilipsHueProperty(
-                  this,
-                  buttonType,
-                  {
-                    label: buttonInfo.label,
-                    type: 'date',
-                    readOnly: true,
-                  },
-                  device.state.lastupdated
-                )
-              );
             }
+            this.properties.set(
+              'lastUpdated',
+              new PhilipsHueProperty(
+                this,
+                'lastUpdated',
+                {
+                  label: `Last Updated`,
+                  type: 'string',
+                  readOnly: true,
+                },
+                device.state.lastupdated
+              )
+            );
           }
         }
       }
@@ -622,7 +622,7 @@ class PhilipsHueDevice extends Device {
           }
         }
       }
-      lastUpdatedProp.setCachedValue(lastUpdated);
+      lastUpdatedProp.setCachedValueAndNotify(lastUpdated);
     }
   }
 
