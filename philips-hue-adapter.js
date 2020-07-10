@@ -32,23 +32,31 @@ const SUPPORTED_SENSOR_TYPES = {
 
 const HUE_DIMMER_SWITCH_BUTTONS = {
   buttonOn: {
-    start: 1000,
-    off: 1002,
+    initialPress: 1000,
+    repeat: 1001,
+    shortRelease: 1002,
+    longRelease: 1003,
     label: 'On',
   },
   buttonBrighten: {
-    start: 2000,
-    off: 2002,
+    initialPress: 2000,
+    repeat: 2001,
+    shortRelease: 2002,
+    longRelease: 2003,
     label: 'Dim up',
   },
   buttonDim: {
-    start: 3000,
-    off: 3002,
+    initialPress: 3000,
+    repeat: 3001,
+    shortRelease: 3002,
+    longRelease: 3003,
     label: 'Dim down',
   },
   buttonOff: {
-    start: 4000,
-    off: 4002,
+    initialPress: 4000,
+    repeat: 4001,
+    shortRelease: 4002,
+    longRelease: 4003,
     label: 'Off',
   },
 };
@@ -155,6 +163,13 @@ class PhilipsHueProperty extends Property {
         this.device.adapter.sendProperties(
           this.device.deviceId,
           levelToState(value)
+        );
+        break;
+      }
+      case 'lastUpdated': {
+        this.device.adapter.sendProperties(
+          this.device.deviceId,
+          value
         );
         break;
       }
@@ -365,11 +380,24 @@ class PhilipsHueDevice extends Device {
                     type: 'boolean',
                     readOnly: true,
                   },
-                  device.state.buttonevent >= buttonInfo.start &&
-                                       device.state.buttonevent < buttonInfo.off
+                  device.state.buttonevent >= buttonInfo.initialPress &&
+                    device.state.buttonevent <= buttonInfo.longRelease
                 )
               );
             }
+            this.properties.set(
+              'lastUpdated',
+              new PhilipsHueProperty(
+                this,
+                'lastUpdated',
+                {
+                  label: `Last Updated`,
+                  type: 'string',
+                  readOnly: true,
+                },
+                device.state.lastupdated
+              )
+            );
           }
         }
       }
@@ -577,17 +605,24 @@ class PhilipsHueDevice extends Device {
 
     if (this.properties.has('buttonOn')) {
       const buttonEvent = device.state.buttonevent;
+      const lastUpdated = device.state.lastupdated;
+      const lastUpdatedProp = this.properties.get('lastUpdated');
+      const isPressed = lastUpdatedProp.value !== lastUpdated;
+
       for (const buttonType in HUE_DIMMER_SWITCH_BUTTONS) {
         if (HUE_DIMMER_SWITCH_BUTTONS.hasOwnProperty(buttonType)) {
           const buttonInfo = HUE_DIMMER_SWITCH_BUTTONS[buttonType];
           const buttonProp = this.properties.get(buttonType);
-          const pressed = buttonEvent >= buttonInfo.start &&
-            buttonEvent < buttonInfo.off;
-          if (buttonProp.value !== pressed) {
-            buttonProp.setCachedValueAndNotify(pressed);
+          const isButton = buttonEvent >= buttonInfo.initialPress &&
+            buttonEvent <= buttonInfo.longRelease;
+
+
+          if (buttonProp.value !== (isPressed && isButton)) {
+            buttonProp.setCachedValueAndNotify(isPressed && isButton);
           }
         }
       }
+      lastUpdatedProp.setCachedValueAndNotify(lastUpdated);
     }
   }
 
