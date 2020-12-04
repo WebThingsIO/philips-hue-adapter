@@ -80,11 +80,11 @@ class PhilipsHueProperty extends Property {
       return Promise.reject('Read-only property');
     }
 
-    if (this.hasOwnProperty('minimum')) {
+    if (typeof this.minimum === 'number') {
       value = Math.max(this.minimum, value);
     }
 
-    if (this.hasOwnProperty('maximum')) {
+    if (typeof this.maximum === 'number') {
       value = Math.min(this.maximum, value);
     }
 
