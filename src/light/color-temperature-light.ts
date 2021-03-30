@@ -21,7 +21,7 @@ export class ColorTemperatureLight extends DimmableLight {
     deviceId: string
   ) {
     super(adapter, id, light, bridgeIp, username, deviceId);
-    this.getTypes().push('ColorControl');
+    this.addType('ColorControl');
     this.colorTemperatureProperty = new ColorTemperatureProperty(this);
     this.addProperty(this.colorTemperatureProperty);
   }
