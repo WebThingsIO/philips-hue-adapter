@@ -64,7 +64,7 @@
     "lib/light/color-temperature-light.js",
     "lib/light/color-temperature-property.js",
     "lib/light/color-light.js",
-    "lib/light/of-off-property.js",
+    "lib/light/on-off-property.js",
     "lib/light/color-property.js",
     "lib/light/brightness-property.js",
     "lib/color-light.js",
