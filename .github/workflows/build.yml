@@ -16,6 +16,7 @@ jobs:
         node-version: [
           10,
           12,
+          14,
         ]
     steps:
       - uses: actions/checkout@v2
@@ -24,7 +25,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
         run: |
-          npm install
+          npm ci
+      - name: Check formatting
+        run: |
+          npx prettier -c '*.js' 'src/*.ts'
       - name: Lint with eslint
         run: |
           npm run lint
+      - name: Transpile ts files
+        run: |
+          npm run build

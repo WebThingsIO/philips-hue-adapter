@@ -23,8 +23,10 @@
       "properties": {
         "usernames": {
           "type": "array",
+          "title": "Usernames",
           "items": {
             "type": "object",
+            "title": "Username",
             "required": [
               "id",
               "username"
