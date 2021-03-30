@@ -4,7 +4,7 @@ rm -rf node_modules
 
 npm install --production
 
-shasum --algorithm 256 manifest.json package.json lib/*.js LICENSE > SHA256SUMS
+shasum --algorithm 256 manifest.json package.json lib/**/*.js LICENSE > SHA256SUMS
 
 find node_modules \( -type f -o -type l \) -exec shasum --algorithm 256 {} \; >> SHA256SUMS
 
