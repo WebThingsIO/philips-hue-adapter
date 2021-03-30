@@ -44,7 +44,7 @@ export class Switch extends Device implements Sensor {
   constructor(adapter: PhilipsHueAdapter, id: string, sensor: SensorDescription) {
     super(adapter, id);
     this.setTitle(sensor.name);
-    this.getTypes().push('PushButton');
+    this.addType('PushButton');
 
     this.lastUpdatedProperty = new LastUpdatedProperty(this);
 
@@ -53,6 +53,10 @@ export class Switch extends Device implements Sensor {
       this.buttons.push(button);
       this.addProperty(button);
     }
+  }
+
+  addType(type: string): void {
+    ((this as unknown) as { '@type': string[] })['@type'].push(type);
   }
 
   update(sensor: SensorDescription): void {

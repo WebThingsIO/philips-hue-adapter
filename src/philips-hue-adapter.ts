@@ -247,7 +247,7 @@ export class PhilipsHueAdapter extends Adapter {
   }
 
   private async setUsername(username: string): Promise<void> {
-    const db = new Database(manifest.id);
+    const db = new Database(manifest.id, '');
     await db.open();
     const config: Config = (await db.loadConfig()) ?? {};
 
@@ -288,7 +288,7 @@ export class PhilipsHueAdapter extends Adapter {
   }
 
   private async getConfig(): Promise<Config> {
-    const db = new Database(manifest.id);
+    const db = new Database(manifest.id, '');
     await db.open();
     return (await db.loadConfig()) ?? {};
   }

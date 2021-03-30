@@ -27,12 +27,16 @@ export class DimmableLight extends Device {
   ) {
     super(adapter, id);
     this.setTitle(light.name);
-    this.getTypes().push('OnOffSwitch');
-    this.getTypes().push('Light');
+    this.addType('OnOffSwitch');
+    this.addType('Light');
     this.onOffProperty = new OnOffProperty(this);
     this.addProperty(this.onOffProperty);
     this.brightnessProperty = new BrightnessProperty(this);
     this.addProperty(this.brightnessProperty);
+  }
+
+  addType(type: string): void {
+    ((this as unknown) as { '@type': string[] })['@type'].push(type);
   }
 
   update(light: LightDescription): void {

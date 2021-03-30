@@ -31,7 +31,7 @@ export class PresenceSensor extends Device implements Sensor {
   ) {
     super(adapter, id);
     this.setTitle(sensor.name);
-    this.getTypes().push('MotionSensor');
+    this.addType('MotionSensor');
     this.presenceProperty = new PresenceProperty(this);
     this.addProperty(this.presenceProperty);
     this.batteryProperty = new BatteryProperty(this);
@@ -95,8 +95,12 @@ export class PresenceSensor extends Device implements Sensor {
     }
 
     for (const type of types.keys()) {
-      this.getTypes().push(type);
+      this.addType(type);
     }
+  }
+
+  addType(type: string): void {
+    ((this as unknown) as { '@type': string[] })['@type'].push(type);
   }
 
   update(sensor: SensorDescription, sensors: SensorDescriptions): void {
