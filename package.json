@@ -1,6 +1,6 @@
 {
   "name": "philips-hue-adapter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "WebThings Gateway Philips Hue Adapter. Press the link button on your Hue bridge to pair devices.",
   "scripts": {
     "lint": "eslint src",
